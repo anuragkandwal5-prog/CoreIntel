@@ -26,13 +26,11 @@ def login():
         # अगर गलत है, तो एरर मैसेज दिखाओ
         return "<h1>गलत नाम या ईमेल! यह सुरक्षित सिस्टम है।</h1> <a href='/'>वापस जाएँ</a>"
 
-# 3. आपका सुरक्षित मास्टर डैशबोर्ड (लॉगिन के बाद यहाँ आएंगे)
+# 3. आपका सुरक्षित मास्टर डैशबोर्ड
 @app.route('/dashboard')
 def dashboard():
-    return """
-    <h1 style='color: #27ae60; text-align: center; margin-top: 50px;'>CoreIntel मास्टर डैशबोर्ड में आपका स्वागत है, अनुराग!</h1>
-    <p style='text-align: center;'>यहाँ हम आपके OSINT, Scam Detector, और Payload Generator टूल्स सेट करेंगे।</p>
-    """
+    return render_template('dashboard.html')
+
 
 if __name__ == '__main__':
     app.run(debug=True)
