@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Animated Login Form</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  --blue:#4a6cff; --green:#27ae60; --ink:#1d2433; --fw:min(460px,86vw);
+  --t:9s; --ground:15vh; --h:38vh; --lean:calc(50vw - var(--fw)/2 - 13vh);
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--blue);font-family:"Fira Sans",system-ui,sans-serif;color:#fff;overflow:hidden}
+.stage{position:relative;width:100%;height:100%;overflow:hidden}
+
+/* ---------- form ---------- */
+.form{position:absolute;z-index:2;left:50%;top:50%;width:var(--fw);transform:translate(-50%,-56%) scale(.03);visibility:hidden;transition:transform .6s cubic-bezier(.2,.9,.3,1.15),opacity .35s ease,visibility 0s linear .6s;
+  opacity:0;text-align:center}
+.form.open{transform:translate(-50%,-56%) scale(1);opacity:1;visibility:visible;transition-delay:0s}
+.form .close{position:absolute;right:-6px;top:-34px;font-size:15px;opacity:.8;background:none;border:0;color:#fff;cursor:pointer}
+.form h1{margin:0 0 8px;font-size:clamp(22px,4.4vw,30px);font-weight:700}
+.form .sub{margin:0 0 18px;font-size:13px;font-weight:500}
+.form label{display:block;margin:0 0 8px;font-size:13px;font-weight:500}
+.field{position:relative;margin-bottom:10px}
+.field svg{position:absolute;left:10px;top:50%;width:16px;height:16px;transform:translateY(-50%);stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.field input{width:100%;height:42px;border:0;border-radius:5px;background:#fff;padding:0 12px 0 36px;
+  font:500 12px "Fira Sans",system-ui,sans-serif;color:var(--ink);box-shadow:0 2px 6px rgba(15,25,80,.25);outline:none}
+.field input::placeholder{color:#5b6475}
+.field input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.55),0 2px 6px rgba(15,25,80,.25)}
+.gap{height:10px}
+.next{width:100%;height:44px;border:0;border-radius:4px;background:var(--green);color:#fff;
+  font:600 13px "Fira Sans",system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 6px rgba(15,25,80,.25);transition:filter .2s,transform .2s}
+.next:hover{filter:brightness(1.08)} .next:active{transform:scale(.98)}
+.next:focus-visible,.close:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.badge{display:inline-block;margin-top:22px;float:right;background:#fff;color:#333;font-size:8px;padding:3px 6px;border-radius:3px}
+.ok{display:none;margin-top:14px;font-size:14px;font-weight:600}
+
+/* ---------- character ---------- */
+.actor{position:absolute;bottom:var(--ground);height:var(--h);aspect-ratio:100/220;left:-20vw;
+  animation:path var(--t) ease-in-out forwards;transform-origin:50% 100%}
+.pose{width:100%;height:100%;transform-origin:50% 100%;animation:pose var(--t) ease-in-out forwards}
+.bounce{width:100%;height:100%;animation:bounce .45s ease-in-out calc(var(--t)*.44) 4}
+.actor svg{width:100%;height:100%;overflow:visible;display:block}
+.actor g{transform-box:view-box}
+.legL{transform-origin:42px 118px} .legR{transform-origin:58px 118px}
+.armL{transform-origin:34px 58px}  .armR{transform-origin:66px 58px}
+.legL{animation:swing .5s ease-in-out 3 alternate}
+.legR{animation:swing .5s ease-in-out 3 alternate-reverse}
+.armL{animation:swing .5s ease-in-out 3 alternate-reverse}
+.armR{animation:holdcase var(--t) ease-in-out forwards}
+.armL.dance{animation:none}
+.carried{animation:vanish var(--t) step-end forwards}
+.shadow{position:absolute;left:50%;bottom:-1.4vh;width:90%;height:2.4vh;transform:translateX(-50%);
+  background:radial-gradient(closest-side,rgba(10,20,90,.45),transparent);}
+
+.case{position:absolute;z-index:3;padding:0;border:0;background:none;cursor:pointer;pointer-events:none;bottom:calc(var(--ground) - .6vh);left:calc(22vw + 12vh);width:7vh;height:5vh;opacity:0;
+  animation:appear var(--t) step-end forwards}
+.case svg{width:100%;height:100%;display:block}
+.case.ready{pointer-events:auto}
+.case::after{content:"";position:absolute;inset:-12px}
+.case:focus-visible{outline:3px solid #fff;outline-offset:4px;border-radius:6px}
+.case.pop svg{animation:pop .35s ease}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.18,.88)}100%{transform:scale(1)}}
+.hint{position:absolute;z-index:3;left:calc(22vw + 15.5vh);bottom:calc(var(--ground) + 6.8vh);transform:translateX(-50%);white-space:nowrap;
+  background:#fff;color:var(--ink);font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .3s}
+.hint.show{opacity:1;animation:bob 1.2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-4px)}}
+
+@keyframes path{
+  0%{left:-20vw}
+  17%{left:22vw}
+  67%{left:22vw}
+  78%,100%{left:var(--lean)}
+}
+@keyframes pose{
+  0%,19%{transform:none}
+  25%{transform:scaleY(.6) translateY(2%)}
+  31%{transform:none}
+  44%{transform:none}
+  67%{transform:none}
+  78%{transform:none}
+  84%,100%{transform:rotate(-9deg)}
+}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6%) rotate(3deg)}}
+@keyframes swing{from{transform:rotate(-22deg)}to{transform:rotate(22deg)}}
+@keyframes holdcase{
+  0%,17%{transform:rotate(4deg)}
+  25%{transform:rotate(35deg)}
+  31%,44%{transform:rotate(0deg)}
+  48%,60%{transform:rotate(160deg)}
+  66%{transform:rotate(20deg)}
+  84%,100%{transform:rotate(-70deg) translate(2px,-4px)}
+}
+@keyframes vanish{0%,24.9%{opacity:1}25%,100%{opacity:0}}
+@keyframes appear{0%,24.9%{opacity:0}25%,100%{opacity:1}}
+@keyframes formIn{from{opacity:0;transform:translate(-50%,-48%)}to{opacity:1;transform:translate(-50%,-56%)}}
+
+.replay{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5;background:rgba(255,255,255,.18);
+  color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:6px 14px;font:500 12px "Fira Sans",sans-serif;cursor:pointer}
+.replay:focus-visible{outline:3px solid #fff;outline-offset:2px}
+
+@media (max-width:640px){ :root{--h:22vh;--ground:5vh;--lean:3vw} .form{top:42%} }
+@media (prefers-reduced-motion:reduce){
+  .actor{animation:none;left:var(--lean)} .pose{animation:none;transform:rotate(-9deg)}
+  .bounce,.legL,.legR,.armL{animation:none} .armR{animation:none;transform:rotate(-70deg)}
+  .carried{display:none} .case{animation:none;opacity:1} .form,.case.pop svg,.hint.show{animation:none;transition:none}
+}
+</style>
+</head>
+<body>
+<main class="stage" id="stage">
+
+  <form class="form" id="form" onsubmit="return false">
+    <button class="close" type="button" aria-label="Close">✕</button>
+    <h1>Register now</h1>
+    <p class="sub">Secure your spot in our upcoming live webinar</p>
+
+    <label for="name">What’s your name? *</label>
+    <div class="field">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <input id="name" type="text" placeholder="Name" autocomplete="given-name">
+    </div>
+    <div class="field">
+      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
+      <input id="surname" type="text" placeholder="Surname" autocomplete="family-name">
+    </div>
+
+    <div class="gap"></div>
+    <label for="email">Enter your email address *</label>
+    <div class="field">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/></svg>
+      <input id="email" type="email" placeholder="Ex. yourname@company.com" autocomplete="email">
+    </div>
+
+    <button class="next" id="next" type="button">Next</button>
+    <p class="ok" id="ok" role="status"></p>
+    <span class="badge">Powered by Visme Forms</span>
+  </form>
+
+  <div class="case" id="bag" role="button" tabindex="0" aria-label="Open login form" aria-expanded="false">
+    <svg viewBox="0 0 70 50"><path d="M24 12v-5a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v5" fill="none" stroke="#5a2e12" stroke-width="3"/>
+      <rect x="2" y="12" width="66" height="34" rx="5" fill="#8a4a1f"/><rect x="2" y="26" width="66" height="3" fill="#5a2e12"/><rect x="31" y="23" width="8" height="9" rx="1.5" fill="#e8b04a"/></svg>
+  </div>
+
+  <div class="actor" aria-hidden="true">
+    <div class="shadow"></div>
+    <div class="pose"><div class="bounce">
+      <svg viewBox="0 0 100 220">
+        <!-- back arm -->
+        <g class="armL"><rect x="26" y="54" width="11" height="58" rx="5.5" fill="#a9a9ae"/><circle cx="31.5" cy="116" r="6" fill="#f1c9a5"/></g>
+        <!-- legs -->
+        <g class="legL"><rect x="35" y="112" width="15" height="88" rx="7" fill="#1e1f27"/><ellipse cx="43" cy="204" rx="11" ry="6" fill="#fff"/></g>
+        <g class="legR"><rect x="50" y="112" width="15" height="88" rx="7" fill="#26272f"/><ellipse cx="59" cy="204" rx="11" ry="6" fill="#fff"/></g>
+        <!-- torso -->
+        <rect x="31" y="48" width="38" height="72" rx="13" fill="#c2c2c7"/>
+        <path d="M44 48h12l-6 28z" fill="#f5f5f5"/>
+        <!-- head -->
+        <rect x="44" y="40" width="12" height="12" rx="4" fill="#e8b994"/>
+        <circle cx="50" cy="26" r="17" fill="#f1c9a5"/>
+        <path d="M32 26c-2-16 10-22 20-20 10 1 18 8 16 22-2-8-6-11-12-11-8 0-12 5-24 9z" fill="#f2b632"/>
+        <circle cx="44" cy="28" r="1.6" fill="#2b2b33"/><circle cx="57" cy="28" r="1.6" fill="#2b2b33"/>
+        <path d="M45 35q5.5 4 11 0" stroke="#b5654a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        <!-- front arm + briefcase -->
+        <g class="armR"><rect x="63" y="54" width="11" height="58" rx="5.5" fill="#c2c2c7"/><circle cx="68.5" cy="116" r="6" fill="#f1c9a5"/>
+          <g class="carried"><rect x="58" y="122" width="26" height="20" rx="3" fill="#8a4a1f"/><rect x="66" y="117" width="10" height="6" rx="2" fill="none" stroke="#5a2e12" stroke-width="2"/></g>
+        </g>
+      </svg>
+    </div></div>
+  </div>
+
+  <span class="hint" id="hint">Tap the bag</span>
+  <button class="replay" id="replay" type="button">Replay</button>
+</main>
+
+<script>
+(function(){
+  var next=document.getElementById('next'), ok=document.getElementById('ok');
+  next.addEventListener('click',function(){
+    var n=document.getElementById('name').value.trim(), e=document.getElementById('email').value.trim();
+    ok.style.display='block';
+    if(!n||!/^\S+@\S+\.\S+$/.test(e)){ok.textContent='Add your name and a valid email address to continue.';return}
+    ok.textContent='You’re in, '+n+'! Check your inbox for the webinar link.';
+  });
+  var form=document.getElementById('form'), bag=document.getElementById('bag'), hint=document.getElementById('hint');
+  function origin(){
+    var ox=bag.offsetLeft+bag.offsetWidth/2-(form.offsetLeft-form.offsetWidth/2);
+    var oy=bag.offsetTop+bag.offsetHeight/2-(form.offsetTop-.56*form.offsetHeight);
+    form.style.transformOrigin=ox+'px '+oy+'px';
+  }
+  function toggle(){
+    origin();
+    var open=form.classList.toggle('open');
+    bag.setAttribute('aria-expanded',open);
+    bag.setAttribute('aria-label',open?'Put login form back in the bag':'Open login form');
+    hint.classList.remove('show');
+    bag.classList.remove('pop'); void bag.offsetWidth; bag.classList.add('pop');
+  }
+  bag.addEventListener('click',toggle);
+  bag.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}});
+  document.querySelector('.close').addEventListener('click',function(){if(form.classList.contains('open'))toggle()});
+  window.addEventListener('resize',origin);
+  setTimeout(function(){bag.classList.add('ready');hint.classList.add('show')},2400);
+  document.getElementById('replay').addEventListener('click',function(){
+    location.reload();
+  });
+})();
+</script>
+</body>
+</html>
