@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Security Toolkit</title>
+<style>
+  :root{
+    --bg:#070b0c; --panel:#0d1416; --border:#1c2e2a;
+    --text:#d7ecdf; --dim:#5d8077;
+    --accent:#39ff8f; --accent2:#00d4ff;
+    --danger:#ff4d6d; --warn:#ffb020;
+    box-sizing:border-box;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+    color-scheme:dark;
+  }
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  *,*::before,*::after{box-sizing:inherit;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+    line-height:1.5;
+  }
+  .mono{font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;}
+  main, header, footer{max-width:720px; margin:0 auto; padding:0 20px;}
+
+  .hero{padding:48px 20px 28px;}
+  .prompt-line{font-size:14px; color:var(--accent); margin-bottom:18px;}
+  .prompt-line .prompt{color:var(--dim); margin-right:6px;}
+  .cursor{display:inline-block; animation:blink 1s steps(1) infinite;}
+  @media (prefers-reduced-motion:reduce){.cursor{animation:none;}}
+  @keyframes blink{50%{opacity:0;}}
+  h1{font-size:clamp(28px,6vw,40px); margin:0 0 12px; letter-spacing:-0.01em;}
+  .sub{color:var(--dim); max-width:46ch; margin:0;}
+
+  .panel{
+    background:var(--panel); border:1px solid var(--border);
+    border-radius:8px; margin:0 20px 20px; overflow:hidden;
+  }
+  main{padding:0; max-width:760px;}
+  .panel-bar{
+    display:flex; align-items:center; gap:8px;
+    padding:10px 14px; border-bottom:1px solid var(--border);
+  }
+  .dot{width:9px; height:9px; border-radius:50%; background:var(--border);}
+  .dot.r{background:#ff5f56;} .dot.y{background:#ffbd2e;} .dot.g{background:#27c93f;}
+  .panel-title{margin-left:6px; font-size:13px; color:var(--dim);}
+  .panel-body{padding:18px;}
+  .desc{color:var(--dim); font-size:14px; margin:0 0 14px; max-width:60ch;}
+
+  textarea, input, select{
+    width:100%; background:#081011; color:var(--text);
+    border:1px solid var(--border); border-radius:6px;
+    padding:10px 12px; font-family:inherit; font-size:14px;
+  }
+  textarea{min-height:90px; resize:vertical; margin-bottom:10px;}
+  input, select{margin-bottom:10px;}
+  textarea:focus, input:focus, select:focus, button:focus{
+    outline:2px solid var(--accent2); outline-offset:1px;
+  }
+
+  button{
+    background:var(--accent); color:#06120b; border:none;
+    border-radius:6px; padding:10px 16px; font-weight:600;
+    font-size:14px; cursor:pointer;
+  }
+  button:hover{filter:brightness(1.08);}
+  .btn-secondary{background:transparent; color:var(--accent2); border:1px solid var(--accent2); margin-left:8px;}
+  .chat-log{max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:10px; padding-right:4px;}
+  .msg{padding:8px 10px; border-radius:6px; font-size:14px; max-width:85%;}
+  .msg.user{align-self:flex-end; background:rgba(0,212,255,.12);}
+  .msg.ai{align-self:flex-start; background:rgba(57,255,143,.08);}
+  .chat-row{display:flex; gap:8px;}
+  .chat-row input{flex:1; margin-bottom:0;}
+  .typing{color:var(--dim); font-style:italic; font-size:13px; margin:0;}
+
+  .output{margin-top:14px; font-size:14px;}
+  .logline{color:var(--dim); font-family:ui-monospace,monospace; font-size:13px; margin:2px 0;}
+  .hint{color:var(--dim); font-size:13px;}
+  .score{display:inline-block; padding:4px 10px; border-radius:5px; font-weight:600; font-size:13px; margin-bottom:8px;}
+  .score.ok{background:rgba(57,255,143,.12); color:var(--accent);}
+  .score.warn{background:rgba(255,176,32,.14); color:var(--warn);}
+  .score.danger{background:rgba(255,77,109,.14); color:var(--danger);}
+  ul{margin:0; padding-left:18px;}
+  li{margin-bottom:6px;}
+  .lineno{font-family:ui-monospace,monospace; color:var(--accent2); margin-right:6px; font-size:12px;}
+  .cmd-list{list-style:none; padding:0;}
+  .cmd-list li{display:flex; flex-direction:column; gap:2px; padding:8px 0; border-bottom:1px solid var(--border);}
+  .cmd-list li:last-child{border-bottom:none;}
+  .cmd-list code{font-family:ui-monospace,monospace; color:var(--accent2); font-size:13px;}
+  .cmd-list span{color:var(--dim); font-size:13px;}
+  .output a{color:var(--accent2);}
+
+  footer{padding:10px 20px 40px; color:var(--dim); font-size:13px; text-align:center;}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="prompt-line mono"><span class="prompt">$</span><span id="bootText"></span><span class="cursor">▌</span></div>
+  <h1>Security toolkit</h1>
+  <p class="sub">Four small tools to help you spot scams, catch risky code, look up safe commands, and check your own exposure — everything runs in your browser.</p>
+</header>
+
+<main>
+  <section class="panel">
+    <div class="panel-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title mono">ai_assistant.sh</span></div>
+    <div class="panel-body">
+      <p class="desc">Ask anything, or paste something you want explained. This runs on Groq directly inside the page.</p>
+      <div class="chat-log" id="chatLog"></div>
+      <div class="chat-row">
+        <input id="chatInput" type="text" placeholder="Type a message...">
+        <button onclick="sendChat()" id="chatSendBtn">Send</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title mono">scam_scanner.sh</span></div>
+    <div class="panel-body">
+      <p class="desc">Paste a suspicious message, email, or link. This flags common scam patterns — a quick gut-check, not a guarantee.</p>
+      <textarea id="scamInput" placeholder="Paste the message or link here..."></textarea>
+      <button onclick="scanMessage()">Scan message</button>
+      <button onclick="aiCheckMessage()" class="btn-secondary">Ask AI to double-check</button>
+      <div class="output" id="scamOutput"></div>
+      <div class="output" id="aiScamOutput"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title mono">code_scanner.sh</span></div>
+    <div class="panel-body">
+      <p class="desc">Paste a snippet of your own code. This checks for a handful of well-known risky patterns — it's a sanity check, not a full audit.</p>
+      <textarea id="codeInput" placeholder="Paste code here..."></textarea>
+      <button onclick="scanCode()">Scan code</button>
+      <div class="output" id="codeOutput"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title mono">cheat_sheet.md</span></div>
+    <div class="panel-body">
+      <p class="desc">Quick reference for common tools. For network tools, only use these against systems you own or are explicitly authorized to test.</p>
+      <select id="toolSelect" onchange="showCommands()">
+        <option value="git">Git</option>
+        <option value="docker">Docker</option>
+        <option value="linux">Linux basics</option>
+        <option value="nmap">Nmap (authorized scans only)</option>
+      </select>
+      <div class="output" id="commandOutput"></div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="panel-title mono">privacy_check.sh</span></div>
+    <div class="panel-body">
+      <p class="desc">Real breach lookups need a server holding an API key, so this won't fake a live result — it points you to what actually helps.</p>
+      <input id="emailInput" type="email" placeholder="you@example.com (never sent anywhere)">
+      <button onclick="showPrivacyTips()">Show self-check tips</button>
+      <div class="output" id="privacyOutput"></div>
+    </div>
+  </section>
+</main>
+
+<footer>Everything above runs client-side. Nothing you type is sent anywhere.</footer>
+
+<script>
+function typeBoot(){
+  const el = document.getElementById('bootText');
+  const text = ' toolkit --init';
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){ el.textContent = text; return; }
+  let i = 0;
+  const iv = setInterval(()=>{ el.textContent += text[i]; i++; if(i >= text.length) clearInterval(iv); }, 55);
+}
+window.addEventListener('DOMContentLoaded', typeBoot);
+
+function logThen(outputEl, lines, cb){
+  outputEl.innerHTML = '';
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches){ cb(); return; }
+  let i = 0;
+  const next = () => {
+    if(i < lines.length){
+      const p = document.createElement('div');
+      p.className = 'logline'; p.textContent = lines[i];
+      outputEl.appendChild(p); i++;
+      setTimeout(next, 250);
+    } else {
+      setTimeout(()=>{ outputEl.innerHTML=''; cb(); }, 180);
+    }
+  };
+  next();
+}
+
+function addMsg(role, text){
+  const log = document.getElementById('chatLog');
+  const div = document.createElement('div');
+  div.className = 'msg ' + (role === 'user' ? 'user' : 'ai');
+  div.textContent = text;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+  return div;
+}
+
+const CHAT_RULES = 'You are a concise, friendly assistant embedded in a browser-based security toolkit page. Keep answers short and practical.';
+let chatTurns = [];
+
+// Groq API Setup
+const GROQ_API_KEY = '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';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+
+async function callGroq(messages) {
+  const response = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${GROQ_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'llama3-8b-8192', // आप चाहें तो यहाँ 'mixtral-8x7b-32768' भी लिख सकते हैं
+      messages: messages
+    })
+  });
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.status}`);
+  }
+  const data = await response.json();
+  return data.choices[0].message.content;
+}
+
+async function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  
+  input.value = '';
+  addMsg('user', text);
+  chatTurns.push({role:'user', content:text});
+  const btn = document.getElementById('chatSendBtn');
+  btn.disabled = true;
+  const bubble = addMsg('ai', 'Thinking...');
+  
+  try{
+    const reply = await callGroq([{role: 'system', content: CHAT_RULES}, ...chatTurns]);
+    bubble.textContent = reply;
+    chatTurns.push({role:'assistant', content:reply});
+  } catch(e){
+    bubble.textContent = 'Could not get a reply: ' + e.message;
+    chatTurns.pop();
+  } finally {
+    btn.disabled = false;
+  }
+}
+document.getElementById('chatInput').addEventListener('keydown', e => { if(e.key === 'Enter') sendChat(); });
+
+async function aiCheckMessage(){
+  const text = document.getElementById('scamInput').value;
+  const out = document.getElementById('aiScamOutput');
+  if(!text.trim()){ out.innerHTML = '<p class="hint">Paste something first.</p>'; return; }
+  
+  out.innerHTML = '<p class="typing">Thinking...</p>';
+  try{
+    const promptText = 'Look at this message and say briefly whether it looks like a scam or phishing attempt, with 2-3 short reasons:\n\n' + text;
+    const reply = await callGroq([{role: 'user', content: promptText}]);
+    out.innerHTML = `<div class="output">${reply.replace(/\n/g, '<br>')}</div>`;
+  } catch(e){
+    out.innerHTML = '<p class="hint">Could not complete the check: ' + e.message + '</p>';
+  }
+}
+
+function scanMessage(){
+  const text = document.getElementById('scamInput').value;
+  const out = document.getElementById('scamOutput');
+  if(!text.trim()){ out.innerHTML = '<p class="hint">Paste something to scan first.</p>'; return; }
+  logThen(out, ['> parsing message...', '> checking known scam patterns...'], () => {
+    const lower = text.toLowerCase();
+    const patterns = [
+      {re:/urgent|immediately|act now|suspended|locked|verify your account/, label:'Urgency or account-threat language'},
+      {re:/gift card|wire transfer|western union|bitcoin|crypto/, label:'Unusual payment method requested'},
+      {re:/won|winner|congratulations|lottery|prize/, label:'Too-good-to-be-true reward language'},
+      {re:/click here|confirm your password|enter your otp|social security|one-time code/, label:'Asks for credentials or sensitive data'},
+      {re:/bit\.ly|tinyurl|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/, label:'Shortened or IP-based link'}
+    ];
+    const flags = patterns.filter(p => p.re.test(lower));
+    const score = Math.min(flags.length * 20, 100);
+    const level = score >= 60 ? 'High' : score >= 30 ? 'Medium' : 'Low';
+    const cls = score >= 60 ? 'danger' : score >= 30 ? 'warn' : 'ok';
+    let html = '<div class="score ' + cls + '">Risk: ' + level + ' (' + score + '/100)</div>';
+    html += flags.length
+      ? '<ul>' + flags.map(f => '<li>' + f.label + '</li>').join('') + '</ul>'
+      : '<p class="hint">No common scam patterns detected — still worth checking the sender directly if anything feels off.</p>';
+    out.innerHTML = html;
+  });
+}
+
+function scanCode(){
+  const code = document.getElementById('codeInput').value;
+  const out = document.getElementById('codeOutput');
+  if(!code.trim()){ out.innerHTML = '<p class="hint">Paste some code to scan first.</p>'; return; }
+  logThen(out, ['> reading source...', '> checking for risky patterns...'], () => {
+    const checks = [
+      {re:/eval\s*\(/, label:'eval() can execute arbitrary code — avoid if possible'},
+      {re:/innerHTML\s*=/, label:'innerHTML assignment can enable XSS — consider textContent or sanitizing input'},
+      {re:/(SELECT|INSERT|UPDATE|DELETE).*(\+|\$\{)/i, label:'Possible SQL built with string concatenation — use parameterized queries'},
+      {re:/(password|api[_-]?key|secret)\s*=\s*["'][^"']+["']/i, label:'Hardcoded credential or key'},
+      {re:/os\.system\(|subprocess\..*shell\s*=\s*True/, label:'Shell command built from input — risk of command injection'},
+      {re:/document\.write\(/, label:'document.write() is fragile and can be an XSS vector'}
+    ];
+    const lines = code.split('\n');
+    const findings = [];
+    lines.forEach((line, idx) => { checks.forEach(c => { if(c.re.test(line)) findings.push({line: idx+1, label: c.label}); }); });
+    out.innerHTML = findings.length
+      ? '<ul>' + findings.map(f => '<li><span class="lineno">L' + f.line + '</span>' + f.label + '</li>').join('') + '</ul>'
+      : '<p class="hint">No common risk patterns matched. This is a simple pattern check, not a full security audit.</p>';
+  });
+}
+
+const COMMANDS = {
+  git: [
+    ['git status', 'See what changed in your working directory'],
+    ['git log --oneline', 'Compact commit history'],
+    ['git diff', 'Show unstaged changes'],
+    ['git stash', 'Set changes aside temporarily']
+  ],
+  docker: [
+    ['docker ps', 'List running containers'],
+    ['docker logs <container>', 'View logs from a running container'],
+    ['docker exec -it <container> sh', 'Open a shell inside a running container'],
+    ['docker system prune', 'Remove unused containers, images, and build cache']
+  ],
+  linux: [
+    ['ls -la', 'List all files, including hidden ones, with details'],
+    ['grep -r "text" .', 'Search for text recursively in the current folder'],
+    ['chmod 644 file', 'Set standard read/write file permissions'],
+    ['top', 'Show running processes and resource use']
+  ],
+  nmap: [
+    ['nmap -sV <target>', 'Detect service versions on open ports'],
+    ['nmap -p 1-1000 <target>', 'Scan a specific port range'],
+    ['nmap -A <target>', 'Run OS and version detection with traceroute']
+  ]
+};
+
+function showCommands(){
+  const tool = document.getElementById('toolSelect').value;
+  const out = document.getElementById('commandOutput');
+  const rows = COMMANDS[tool] || [];
+  let html = '<ul class="cmd-list">' + rows.map(r => '<li><code>' + r[0] + '</code><span>' + r[1] + '</span></li>').join('') + '</ul>';
+  if(tool === 'nmap') html += '<p class="hint">Only run network scans against systems you own or are explicitly authorized to test.</p>';
+  out.innerHTML = html;
+}
+showCommands();
+
+function showPrivacyTips(){
+  const out = document.getElementById('privacyOutput');
+  out.innerHTML =
+    '<p class="hint">Real breach lookups (like Have I Been Pwned) need a server holding an API key — a browser alone can\'t do this safely, so here\'s what actually helps:</p>' +
+    '<ul>' +
+      '<li>Check your email directly at <a href="https://haveibeenpwned.com" target="_blank" rel="noopener">haveibeenpwned.com</a></li>' +
+      '<li>Use a password manager — most flag reused or breached passwords automatically</li>' +
+      '<li>Turn on two-factor authentication wherever it is offered</li>' +
+      '<li>Never reuse a password across more than one important account</li>' +
+    '</ul>';
+}
+</script>
+</body>
+</html>
