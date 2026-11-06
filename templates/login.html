@@ -3,220 +3,198 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Animated Login Form</title>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@400;500;600;700&display=swap">
+<title>Secure Login</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
 <style>
-:root{
-  --blue:#4a6cff; --green:#27ae60; --ink:#1d2433; --fw:min(460px,86vw);
-  --t:9s; --ground:15vh; --h:38vh; --lean:calc(50vw - var(--fw)/2 - 13vh);
-  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
-}
-*,*::before,*::after{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--blue);font-family:"Fira Sans",system-ui,sans-serif;color:#fff;overflow:hidden}
-.stage{position:relative;width:100%;height:100%;overflow:hidden}
+:root{--g:#00ff9c;--bg:#020b05;--gold:#ffd23f;--red:#ff4d6d;--cy:#5ce1ff}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:#b6ffd9;font:14px/1.4 "Share Tech Mono",ui-monospace,Menlo,Consolas,monospace}
+#rain{position:fixed;inset:0;width:100%;height:100%;opacity:.4;z-index:0}
+.wrap{position:relative;z-index:1;min-height:100dvh;display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
+.card{position:relative;width:min(440px,100%);background:rgba(2,16,8,.9);border:1px solid var(--g);border-radius:10px;overflow:hidden;
+  box-shadow:0 0 28px rgba(0,255,156,.22),inset 0 0 30px rgba(0,255,156,.05)}
+.card::after{content:"";position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
 
-/* ---------- form ---------- */
-.form{position:absolute;z-index:2;left:50%;top:50%;width:var(--fw);transform:translate(-50%,-56%) scale(.03);visibility:hidden;transition:transform .6s cubic-bezier(.2,.9,.3,1.15),opacity .35s ease,visibility 0s linear .6s;
-  opacity:0;text-align:center}
-.form.open{transform:translate(-50%,-56%) scale(1);opacity:1;visibility:visible;transition-delay:0s}
-.form .close{position:absolute;right:-6px;top:-34px;font-size:15px;opacity:.8;background:none;border:0;color:#fff;cursor:pointer}
-.form h1{margin:0 0 8px;font-size:clamp(22px,4.4vw,30px);font-weight:700}
-.form .sub{margin:0 0 18px;font-size:13px;font-weight:500}
-.form label{display:block;margin:0 0 8px;font-size:13px;font-weight:500}
-.field{position:relative;margin-bottom:10px}
-.field svg{position:absolute;left:10px;top:50%;width:16px;height:16px;transform:translateY(-50%);stroke:var(--ink);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.field input{width:100%;height:42px;border:0;border-radius:5px;background:#fff;padding:0 12px 0 36px;
-  font:500 12px "Fira Sans",system-ui,sans-serif;color:var(--ink);box-shadow:0 2px 6px rgba(15,25,80,.25);outline:none}
-.field input::placeholder{color:#5b6475}
-.field input:focus{box-shadow:0 0 0 3px rgba(255,255,255,.55),0 2px 6px rgba(15,25,80,.25)}
-.gap{height:10px}
-.next{width:100%;height:44px;border:0;border-radius:4px;background:var(--green);color:#fff;
-  font:600 13px "Fira Sans",system-ui,sans-serif;cursor:pointer;box-shadow:0 2px 6px rgba(15,25,80,.25);transition:filter .2s,transform .2s}
-.next:hover{filter:brightness(1.08)} .next:active{transform:scale(.98)}
-.next:focus-visible,.close:focus-visible{outline:3px solid #fff;outline-offset:2px}
-.badge{display:inline-block;margin-top:22px;float:right;background:#fff;color:#333;font-size:8px;padding:3px 6px;border-radius:3px}
-.ok{display:none;margin-top:14px;font-size:14px;font-weight:600}
+/* title bar + typing terminal */
+.bar{display:flex;align-items:center;gap:6px;padding:8px 12px;border-bottom:1px solid #0a4;font-size:12px;color:#6fbf99}
+.bar i{width:10px;height:10px;border-radius:50%;background:#ff5f56}
+.bar i:nth-child(2){background:#ffbd2e}.bar i:nth-child(3){background:#27c93f}
+.bar span{margin-left:6px}.bar b{margin-left:auto;font-weight:400;color:var(--g)}
+.term{height:158px;overflow:hidden;padding:10px 14px;font-size:12px;transition:height .6s ease,padding .6s ease,opacity .5s}
+.built .term{height:0;padding-top:0;padding-bottom:0;opacity:0}
+.ln{white-space:pre;color:var(--g)}.ln.g{color:#5aa883}.ln.t{color:var(--cy)}
+.cur{display:inline-block;width:7px;height:13px;background:var(--g);vertical-align:-2px;animation:bl 1s steps(1) infinite}
+@keyframes bl{50%{opacity:0}}
+.skip{position:absolute;right:8px;top:40px;z-index:2;background:none;border:1px solid #0a4;border-radius:4px;color:#6fbf99;font:11px "Share Tech Mono",monospace;padding:2px 8px;cursor:pointer}
+.built .skip{display:none}
 
-/* ---------- character ---------- */
-.actor{position:absolute;bottom:var(--ground);height:var(--h);aspect-ratio:100/220;left:-20vw;
-  animation:path var(--t) ease-in-out forwards;transform-origin:50% 100%}
-.pose{width:100%;height:100%;transform-origin:50% 100%;animation:pose var(--t) ease-in-out forwards}
-.bounce{width:100%;height:100%;animation:bounce .45s ease-in-out calc(var(--t)*.44) 4}
-.actor svg{width:100%;height:100%;overflow:visible;display:block}
-.actor g{transform-box:view-box}
-.legL{transform-origin:42px 118px} .legR{transform-origin:58px 118px}
-.armL{transform-origin:34px 58px}  .armR{transform-origin:66px 58px}
-.legL{animation:swing .5s ease-in-out 3 alternate}
-.legR{animation:swing .5s ease-in-out 3 alternate-reverse}
-.armL{animation:swing .5s ease-in-out 3 alternate-reverse}
-.armR{animation:holdcase var(--t) ease-in-out forwards}
-.armL.dance{animation:none}
-.carried{animation:vanish var(--t) step-end forwards}
-.shadow{position:absolute;left:50%;bottom:-1.4vh;width:90%;height:2.4vh;transform:translateX(-50%);
-  background:radial-gradient(closest-side,rgba(10,20,90,.45),transparent);}
-
-.case{position:absolute;z-index:3;padding:0;border:0;background:none;cursor:pointer;pointer-events:none;bottom:calc(var(--ground) - .6vh);left:calc(22vw + 12vh);width:7vh;height:5vh;opacity:0;
-  animation:appear var(--t) step-end forwards}
-.case svg{width:100%;height:100%;display:block}
-.case.ready{pointer-events:auto}
-.case::after{content:"";position:absolute;inset:-12px}
-.case:focus-visible{outline:3px solid #fff;outline-offset:4px;border-radius:6px}
-.case.pop svg{animation:pop .35s ease}
-@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.18,.88)}100%{transform:scale(1)}}
-.hint{position:absolute;z-index:3;left:calc(22vw + 15.5vh);bottom:calc(var(--ground) + 6.8vh);transform:translateX(-50%);white-space:nowrap;
-  background:#fff;color:var(--ink);font-size:12px;font-weight:500;padding:4px 10px;border-radius:999px;opacity:0;pointer-events:none;transition:opacity .3s}
-.hint.show{opacity:1;animation:bob 1.2s ease-in-out infinite}
-@keyframes bob{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,-4px)}}
-
-@keyframes path{
-  0%{left:-20vw}
-  17%{left:22vw}
-  67%{left:22vw}
-  78%,100%{left:var(--lean)}
-}
-@keyframes pose{
-  0%,19%{transform:none}
-  25%{transform:scaleY(.6) translateY(2%)}
-  31%{transform:none}
-  44%{transform:none}
-  67%{transform:none}
-  78%{transform:none}
-  84%,100%{transform:rotate(-9deg)}
-}
-@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6%) rotate(3deg)}}
-@keyframes swing{from{transform:rotate(-22deg)}to{transform:rotate(22deg)}}
-@keyframes holdcase{
-  0%,17%{transform:rotate(4deg)}
-  25%{transform:rotate(35deg)}
-  31%,44%{transform:rotate(0deg)}
-  48%,60%{transform:rotate(160deg)}
-  66%{transform:rotate(20deg)}
-  84%,100%{transform:rotate(-70deg) translate(2px,-4px)}
-}
-@keyframes vanish{0%,24.9%{opacity:1}25%,100%{opacity:0}}
-@keyframes appear{0%,24.9%{opacity:0}25%,100%{opacity:1}}
-@keyframes formIn{from{opacity:0;transform:translate(-50%,-48%)}to{opacity:1;transform:translate(-50%,-56%)}}
-
-.replay{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5;background:rgba(255,255,255,.18);
-  color:#fff;border:1px solid rgba(255,255,255,.5);border-radius:999px;padding:6px 14px;font:500 12px "Fira Sans",sans-serif;cursor:pointer}
-.replay:focus-visible{outline:3px solid #fff;outline-offset:2px}
-
-@media (max-width:640px){ :root{--h:22vh;--ground:5vh;--lean:3vw} .form{top:42%} }
-@media (prefers-reduced-motion:reduce){
-  .actor{animation:none;left:var(--lean)} .pose{animation:none;transform:rotate(-9deg)}
-  .bounce,.legL,.legR,.armL{animation:none} .armR{animation:none;transform:rotate(-70deg)}
-  .carried{display:none} .case{animation:none;opacity:1} .form,.case.pop svg,.hint.show{animation:none;transition:none}
-}
+/* form */
+form{padding:14px 16px 18px}
+h1{position:relative;margin:2px 0 2px;font-size:26px;font-weight:400;letter-spacing:3px;color:var(--g);text-shadow:0 0 12px rgba(0,255,156,.6)}
+h1::before,h1::after{content:attr(data-t);position:absolute;left:0;top:0;width:100%;opacity:0}
+h1::before{color:var(--cy);clip-path:inset(0 0 55% 0);animation:gl 3s infinite steps(1)}
+h1::after{color:#ff3b8d;clip-path:inset(55% 0 0 0);animation:gl 3s infinite steps(1) reverse}
+@keyframes gl{0%,90%,100%{opacity:0;transform:none}92%{opacity:.9;transform:translateX(-3px)}96%{opacity:.9;transform:translateX(3px)}}
+.sub{margin:0;font-size:12px;color:#5aa883}
+.rv{opacity:0;visibility:hidden;transform:translateX(-14px)}
+.rv.on{visibility:visible;opacity:1;transform:none;transition:opacity .5s,transform .5s;animation:pk .45s steps(3)}
+@keyframes pk{0%{filter:hue-rotate(90deg) brightness(2)}100%{filter:none}}
+label{display:block;margin:12px 0 5px;font-size:12px;color:#5aa883}
+.vip{display:inline-block;margin-left:6px;padding:0 7px;border-radius:99px;background:var(--gold);color:#3a2600;font-size:10px}
+.f{position:relative}
+input{width:100%;height:42px;padding:0 12px;border:1px solid #0a6;border-radius:6px;background:#031209;color:#d8ffe9;font:14px "Share Tech Mono",ui-monospace,monospace;outline:none;caret-color:var(--g)}
+input::placeholder{color:#3f7a5d}
+input:focus{border-color:var(--g);box-shadow:0 0 0 2px rgba(0,255,156,.25),0 0 14px rgba(0,255,156,.3)}
+.pw input{padding-right:62px}
+.vp input{border-color:#a8861a}
+.vp input:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(255,210,63,.25)}
+.eye{position:absolute;right:4px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--g);font:12px "Share Tech Mono",monospace;padding:10px;cursor:pointer}
+.go{width:100%;height:46px;margin-top:18px;border:1px solid var(--g);border-radius:6px;background:rgba(0,255,156,.08);color:var(--g);font:16px "Share Tech Mono",monospace;letter-spacing:3px;cursor:pointer;transition:.2s}
+.go:hover{background:var(--g);color:#012b17;box-shadow:0 0 22px rgba(0,255,156,.6)}.go:disabled{opacity:.5}
+.ok{min-height:1.4em;margin:12px 0 0;color:var(--g)}.ok.err{color:var(--red)}
+button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
+.rp{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:5;background:rgba(0,0,0,.5);border:1px solid #0a4;border-radius:99px;color:#6fbf99;font:12px "Share Tech Mono",monospace;padding:6px 14px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){h1::before,h1::after,.cur{animation:none}}
 </style>
+<noscript><style>.rv{opacity:1!important;visibility:visible!important;transform:none!important}.term{display:none}</style></noscript>
 </head>
 <body>
-<main class="stage" id="stage">
+<canvas id="rain"></canvas>
+<div class="wrap">
+  <div class="card" id="card">
+    <div class="bar"><i></i><i></i><i></i><span>secure-login — bash</span><b id="stat">● building…</b></div>
+    <div class="term" id="code" aria-hidden="true"></div>
+    <button class="skip" id="skip" type="button">skip ▸</button>
 
-  <!-- यहाँ फॉर्म में method="POST" और action="/login" जोड़ा गया है -->
-  <form class="form" id="form" method="POST" action="/login">
-    <button class="close" type="button" aria-label="Close">✕</button>
-    <h1>Register now</h1>
-    <p class="sub">Secure your spot in our upcoming live webinar</p>
+    <form id="form" method="POST" action="/login" novalidate>
+      <div class="rv" id="g1"><h1 data-t="SECURE LOGIN">SECURE LOGIN</h1><p class="sub">authenticate to continue</p></div>
 
-    <label for="name">What’s your name? *</label>
-    <div class="field">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
-      <!-- यहाँ name="name" जोड़ा गया है -->
-      <input id="name" name="name" type="text" placeholder="Name" autocomplete="given-name">
-    </div>
-    <div class="field">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg>
-      <!-- यहाँ name="surname" जोड़ा गया है -->
-      <input id="surname" name="surname" type="text" placeholder="Surname" autocomplete="family-name">
-    </div>
+      <div class="rv" id="g2">
+        <label for="name">$ username</label>
+        <div class="f"><input id="name" name="name" type="text" placeholder="your name" autocomplete="username"></div>
+      </div>
 
-    <div class="gap"></div>
-    <label for="email">Enter your email address *</label>
-    <div class="field">
-      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 7 9-7"/></svg>
-      <!-- यहाँ name="email" जोड़ा गया है -->
-      <input id="email" name="email" type="email" placeholder="Ex. yourname@company.com" autocomplete="email">
-    </div>
+      <div class="rv" id="g3">
+        <label for="password">$ password</label>
+        <div class="f pw">
+          <input id="password" name="password" type="password" placeholder="••••••••" autocomplete="current-password">
+          <button class="eye" id="eye" type="button" aria-label="Show password">SHOW</button>
+        </div>
+      </div>
 
-    <button class="next" id="next" type="button">Next</button>
-    <p class="ok" id="ok" role="status"></p>
-    <span class="badge">Powered by Visme Forms</span>
-  </form>
+      <div class="rv" id="g4">
+        <label for="email">$ vip_email <span class="vip">★ VIP · optional</span></label>
+        <div class="f vp"><input id="email" name="email" type="email" placeholder="vip@email.com (optional)" autocomplete="email"></div>
+      </div>
 
-  <div class="case" id="bag" role="button" tabindex="0" aria-label="Open login form" aria-expanded="false">
-    <svg viewBox="0 0 70 50"><path d="M24 12v-5a3 3 0 0 1 3-3h16a3 3 0 0 1 3 3v5" fill="none" stroke="#5a2e12" stroke-width="3"/>
-      <rect x="2" y="12" width="66" height="34" rx="5" fill="#8a4a1f"/><rect x="2" y="26" width="66" height="3" fill="#5a2e12"/><rect x="31" y="23" width="8" height="9" rx="1.5" fill="#e8b04a"/></svg>
+      <div class="rv" id="g5">
+        <button class="go" id="next" type="submit">LOGIN ▸</button>
+        <p class="ok" id="ok" role="status"></p>
+      </div>
+    </form>
   </div>
-
-  <div class="actor" aria-hidden="true">
-    <div class="shadow"></div>
-    <div class="pose"><div class="bounce">
-      <svg viewBox="0 0 100 220">
-        <!-- back arm -->
-        <g class="armL"><rect x="26" y="54" width="11" height="58" rx="5.5" fill="#a9a9ae"/><circle cx="31.5" cy="116" r="6" fill="#f1c9a5"/></g>
-        <!-- legs -->
-        <g class="legL"><rect x="35" y="112" width="15" height="88" rx="7" fill="#1e1f27"/><ellipse cx="43" cy="204" rx="11" ry="6" fill="#fff"/></g>
-        <g class="legR"><rect x="50" y="112" width="15" height="88" rx="7" fill="#26272f"/><ellipse cx="59" cy="204" rx="11" ry="6" fill="#fff"/></g>
-        <!-- torso -->
-        <rect x="31" y="48" width="38" height="72" rx="13" fill="#c2c2c7"/>
-        <path d="M44 48h12l-6 28z" fill="#f5f5f5"/>
-        <!-- head -->
-        <rect x="44" y="40" width="12" height="12" rx="4" fill="#e8b994"/>
-        <circle cx="50" cy="26" r="17" fill="#f1c9a5"/>
-        <path d="M32 26c-2-16 10-22 20-20 10 1 18 8 16 22-2-8-6-11-12-11-8 0-12 5-24 9z" fill="#f2b632"/>
-        <circle cx="44" cy="28" r="1.6" fill="#2b2b33"/><circle cx="57" cy="28" r="1.6" fill="#2b2b33"/>
-        <path d="M45 35q5.5 4 11 0" stroke="#b5654a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
-        <!-- front arm + briefcase -->
-        <g class="armR"><rect x="63" y="54" width="11" height="58" rx="5.5" fill="#c2c2c7"/><circle cx="68.5" cy="116" r="6" fill="#f1c9a5"/>
-          <g class="carried"><rect x="58" y="122" width="26" height="20" rx="3" fill="#8a4a1f"/><rect x="66" y="117" width="10" height="6" rx="2" fill="none" stroke="#5a2e12" stroke-width="2"/></g>
-        </g>
-      </svg>
-    </div></div>
-  </div>
-
-  <span class="hint" id="hint">Tap the bag</span>
-  <button class="replay" id="replay" type="button">Replay</button>
-</main>
+</div>
+<button class="rp" id="rp" type="button">↻ replay</button>
 
 <script>
+/* ============================================================
+   ✏️ SETTINGS: yahan apna login / VIP code lagao
+   ============================================================ */
+var CONFIG = {
+  nativePost: true,       // true = form seedha server ke /login par POST hoga (name, password, email)
+                          // false = POST nahi hoga, neeche checkLogin() / onVip() wala JS flow chalega
+  passwordMinLength: 1,   // password kam se kam kitne characters ka ho
+  emailRequired: false    // false = email ke bina bhi login ho jayega (VIP optional)
+};
+
+// 1) LOGIN CHECK: data = { name, password, email, vip }
+//    Real password check hamesha apne server/API par karo.
+function checkLogin(data){
+  // return fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).then(function(r){return r.json()});
+  return Promise.resolve({ ok: true, message: 'access granted, ' + data.name });
+}
+
+// 2) VIP OPTIONS: sirf tab chalta hai jab email dala ho (data.vip === true)
+//    Apne secret options yahan add karo. Return kiya hua text screen par dikhega.
+//    Dhyan: browser ka code sabko dikhta hai, asli secrets server par rakho.
+function onVip(data){
+  return '★ VIP unlocked';
+}
+/* ============================================================ */
+
 (function(){
-  var next=document.getElementById('next'), ok=document.getElementById('ok');
-  var form=document.getElementById('form'), bag=document.getElementById('bag'), hint=document.getElementById('hint');
-  
-  next.addEventListener('click',function(){
-    var n=document.getElementById('name').value.trim(), e=document.getElementById('email').value.trim();
-    ok.style.display='block';
-    if(!n||!/^\S+@\S+\.\S+$/.test(e)){
-        ok.textContent='Add your name and a valid email address to continue.';
-        return;
+  var $=function(i){return document.getElementById(i)};
+  var form=$('form'), ok=$('ok'), next=$('next'), EMAIL_RE=/^\S+@\S+\.\S+$/;
+  var RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
+
+  /* ---- login ---- */
+  function show(t,bad){ ok.textContent='> '+t; ok.className='ok'+(bad?' err':'') }
+  $('eye').addEventListener('click',function(){
+    var p=$('password'), hide=p.type==='password';
+    p.type=hide?'text':'password'; this.textContent=hide?'HIDE':'SHOW';
+    this.setAttribute('aria-label',hide?'Hide password':'Show password');
+  });
+  form.addEventListener('submit',function(e){
+    var name=$('name').value.trim(), pw=$('password').value, email=$('email').value.trim();
+    if(!name||pw.length<CONFIG.passwordMinLength){ e.preventDefault(); show('error: username and password required',1); return }
+    if(email?!EMAIL_RE.test(email):CONFIG.emailRequired){ e.preventDefault(); show('error: invalid email (or leave it empty)',1); return }
+    if(CONFIG.nativePost) return;   // sab theek: browser form ko POST /login par bhej dega
+    e.preventDefault();
+    var data={name:name,password:pw,email:email,vip:!!email};
+    next.disabled=true;
+    Promise.resolve(checkLogin(data)).then(function(r){
+      if(!r||!r.ok){ show((r&&r.message)||'access denied',1); return }
+      var msg=r.message||'access granted';
+      if(data.vip) msg+=' '+(onVip(data)||'');
+      show(msg);
+    }).catch(function(){ show('error: try again',1) }).then(function(){ next.disabled=false });
+  });
+  $('rp').addEventListener('click',function(){ location.reload() });
+
+  /* ---- matrix rain ---- */
+  var c=$('rain'), x=c.getContext('2d'), dr=[], CH='01<>/{}[];=$#&@+*アイウエオカキクケコ';
+  function rs(){ c.width=innerWidth; c.height=innerHeight; dr=[]; for(var i=0;i<c.width/16;i++) dr.push(Math.random()*-40) }
+  rs(); addEventListener('resize',rs);
+  if(!RM) setInterval(function(){
+    x.fillStyle='rgba(2,11,5,.14)'; x.fillRect(0,0,c.width,c.height);
+    x.fillStyle='#00ff9c'; x.font='14px monospace';
+    for(var i=0;i<dr.length;i++){
+      x.fillText(CH[Math.floor(Math.random()*CH.length)],i*16,dr[i]*16);
+      if(dr[i]*16>c.height&&Math.random()>.97) dr[i]=0;
+      dr[i]++;
     }
-    ok.textContent='Logging in...';
-    // यह लाइन डेटा को सुरक्षित रूप से app.py को भेज देगी
-    form.submit();
-  });
-  
-  function origin(){
-    var ox=bag.offsetLeft+bag.offsetWidth/2-(form.offsetLeft-form.offsetWidth/2);
-    var oy=bag.offsetTop+bag.offsetHeight/2-(form.offsetTop-.56*form.offsetHeight);
-    form.style.transformOrigin=ox+'px '+oy+'px';
+  },55);
+
+  /* ---- code types itself, form builds as lines finish ---- */
+  var LINES=[   // [text, style, element-to-reveal]
+    ['$ ssh guest@secure-gateway -enc aes256','',''],
+    ['> handshake ...... OK','g',''],
+    ['> compiling login.html','g',''],
+    ['<h1>SECURE LOGIN</h1>','t','g1'],
+    ['<input name="name">','t','g2'],
+    ['<input name="password" type="password">','t','g3'],
+    ['<input name="email"> <!-- VIP optional -->','t','g4'],
+    ['<button>LOGIN</button>','t','g5'],
+    ['> build OK — rendering ui','g','']
+  ];
+  var code=$('code'), skip=RM, cur=document.createElement('i');
+  cur.className='cur';
+  $('skip').onclick=function(){ skip=true };
+  var sleep=function(ms){ return new Promise(function(r){ setTimeout(r,skip?0:ms) }) };
+  async function build(){
+    for(var n=0;n<LINES.length;n++){
+      var L=LINES[n], d=document.createElement('div');
+      d.className='ln '+L[1]; code.appendChild(d);
+      for(var i=1;i<=L[0].length&&!skip;i++){ d.textContent=L[0].slice(0,i); d.appendChild(cur); code.scrollTop=1e5; await sleep(12) }
+      d.textContent=L[0];
+      if(L[2]) $(L[2]).classList.add('on');
+      await sleep(140);
+    }
+    document.querySelectorAll('.rv').forEach(function(e){ e.classList.add('on') });
+    $('card').classList.add('built'); $('stat').textContent='● ready';
   }
-  function toggle(){
-    origin();
-    var open=form.classList.toggle('open');
-    bag.setAttribute('aria-expanded',open);
-    bag.setAttribute('aria-label',open?'Put login form back in the bag':'Open login form');
-    hint.classList.remove('show');
-    bag.classList.remove('pop'); void bag.offsetWidth; bag.classList.add('pop');
-  }
-  bag.addEventListener('click',toggle);
-  bag.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle()}});
-  document.querySelector('.close').addEventListener('click',function(){if(form.classList.contains('open'))toggle()});
-  window.addEventListener('resize',origin);
-  setTimeout(function(){bag.classList.add('ready');hint.classList.add('show')},2400);
-  document.getElementById('replay').addEventListener('click',function(){
-    location.reload();
-  });
+  build();
 })();
 </script>
 </body>
