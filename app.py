@@ -1,36 +1,24 @@
-from flask import Flask, render_template, request, redirect
+from flask import Flask, request, render_template, session, redirect
 
-app = Flask(__name__)
+app.secret_key = "koi-lamba-random-text-badal-do"
 
-# आपका सीक्रेट लॉगिन डेटा (आप इसे अपने हिसाब से बदल सकते हैं)
-ADMIN_NAME = "Anurag"
-ADMIN_EMAIL = "admin@coreintel.com"
-
-# 1. मुख्य पेज (यहाँ आपका एनिमेटेड लॉगिन फॉर्म खुलेगा)
-@app.route('/')
-def home():
-    return render_template('login.html')
-
-# 2. लॉगिन चेक करने का सिस्टम
 @app.route('/login', methods=['POST'])
 def login():
-    # लॉगिन फॉर्म से डेटा निकालना
-    user_name = request.form.get('name')
-    user_email = request.form.get('email')
-    
-    # चेक करना कि नाम और ईमेल सही है या नहीं
-    if user_name.lower() == ADMIN_NAME.lower() and user_email == ADMIN_EMAIL:
-        # अगर सही है, तो मास्टर डैशबोर्ड पर भेज दो
-        return redirect('/dashboard')
-    else:
-        # अगर गलत है, तो एरर मैसेज दिखाओ
-        return "<h1>गलत नाम या ईमेल! यह सुरक्षित सिस्टम है।</h1> <a href='/'>वापस जाएँ</a>"
+    name = request.form.get('name', '').strip()
+    password = request.form.get('password', '')
+    email = request.form.get('email', '').strip()
+    # TODO: yahan asli password check lagao
+    session['user'] = {'name': name, 'vip': bool(email)}
+    return redirect('/dashboard')
 
-# 3. आपका सुरक्षित मास्टर डैशबोर्ड
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    u = session.get('user')
+    if not u:
+        return redirect('/')          # login ke bina andar nahi aa sakte
+    return render_template('dashboard.html', name=u['name'], vip=u['vip'])
 
-
-if __name__ == '__main__':
-    app.run(debug=True)
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect('/')
