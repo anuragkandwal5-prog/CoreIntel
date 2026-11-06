@@ -48,7 +48,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 </style>
 </head>
 <!-- Flask/Jinja se name aur vip yahin aate hain. Bina server ke chalao to ?name=Rahul&vip=1 se test kar sakte ho -->
-<body data-name="{{ name }}" data-vip="{{ 1 if vip else 0 }}">
+<body data-srv="{{ 'ok' }}" data-name="{{ name }}" data-vip="{{ 1 if vip else 0 }}">
 <canvas id="rain"></canvas>
 <main class="wrap">
   <header class="top rv"><div><div class="mini">● session active</div><h1>ACCESS GRANTED</h1></div><a class="out" href="/logout">logout ⏻</a></header>
@@ -79,7 +79,7 @@ function log(t){var L=$('log'),d=document.createElement('div');d.textContent=ts(
 
 (function(){
   var D=document.body.dataset, q=new URLSearchParams(location.search), RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
-  var demo=!D.name||D.name.indexOf('{{')>-1;           // server se data nahi aaya = preview mode
+  var demo=D.srv!=='ok';                              // server se data nahi aaya = preview mode
   var NAME=demo?(q.get('name')||'guest'):D.name, VIP=demo?q.get('vip')==='1':D.vip==='1';
 
   function tiles(box,list,fn,on){
