@@ -5,6 +5,8 @@ from flask import Flask, request, render_template, session, redirect, abort
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "badal-do-koi-lamba-random-text")
 
+VIP_EMAIL = "coreintel@nia.com"   # sirf isi email se VIP khulega
+
 
 # ---------- helpers ----------
 def login_required(f):
@@ -34,7 +36,8 @@ def login():
     # TODO: yahan asli password check lagao
     if not name or not password:
         return redirect("/")
-    session["user"] = {"name": name, "vip": bool(email),
+    is_vip = email.lower() == VIP_EMAIL.lower()     # sirf exact email match par VIP
+    session["user"] = {"name": name, "vip": is_vip,
                        "since": time.strftime("%d %b %Y, %H:%M UTC", time.gmtime())}
     return redirect("/dashboard")
 
@@ -53,7 +56,6 @@ def dashboard():
 
 
 # ---------- ✏️ NORMAL PAGES: har page ka content yahan likho ----------
-# items = [("left text", "right text"), ...]
 @app.route("/profile")
 @login_required
 def profile():
@@ -88,18 +90,23 @@ def settings():
     ])
 
 
-# ---------- ★ VIP PAGES: sirf VIP email wale user dekh sakte hain ----------
+# ---------- ★ VIP PAGES: sirf coreintel@nia.com se login karne par khulta hai ----------
+# Teeno pages abhi sirf placeholder hain — asli tool (Metasploit / OSINT / breach-check
+# API) yahan apne authorized setup ke hisaab se khud jodo.
 VIP_PAGES = {
-    1: ("SECRET 1", "Yahan apna pehla secret option likho", [("status", "unlocked")]),
-    2: ("SECRET 2", "Yahan apna doosra secret option likho", [("status", "unlocked")]),
-    3: ("SECRET 3", "Yahan apna teesra secret option likho", [("status", "unlocked")]),
+    1: ("METASPLOIT", "Apna Metasploit console/RPC yahan jodo (sirf apne authorized setup ke liye)",
+        [("status", "placeholder — apna integration add karo")]),
+    2: ("OSINT TOOL", "Apna OSINT tool/API yahan jodo",
+        [("status", "placeholder — apna integration add karo")]),
+    3: ("DATA BREACH CHECK", "Apna breach-check tool/API yahan jodo",
+        [("status", "placeholder — apna integration add karo")]),
 }
 
 @app.route("/vip/<int:n>")
 @login_required
 def vip_page(n):
     if not session["user"]["vip"]:
-        return redirect("/dashboard")      # VIP nahi hai to andar nahi
+        return redirect("/dashboard")      # VIP email se login nahi kiya to andar nahi
     if n not in VIP_PAGES:
         abort(404)
     return page(*VIP_PAGES[n])
