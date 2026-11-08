@@ -69,8 +69,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
    ============================================================ */
 var TILES=[['◉','Profile'],['▤','Files'],['✉','Messages'],['⚙','Settings']];
 var VIP_TILES=[['★','Secret 1'],['★','Secret 2'],['★','Secret 3']];
-function openTile(name){ log('> opening '+name+' ...'); /* yahan apna kaam / page link */ }
-function openVip(name){ log('> VIP: '+name+' ...'); /* yahan apne secret options */ }
+function openTile(name){ location.href='/'+name.toLowerCase(); }   // Profile -> /profile
+function openVip(name){ location.href='/vip/'+name.replace('Secret ',''); }   // Secret 1 -> /vip/1
 /* ============================================================ */
 
 var $=function(i){return document.getElementById(i)};
