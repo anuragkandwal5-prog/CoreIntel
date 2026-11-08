@@ -17,6 +17,16 @@ def login_required(f):
         return f(*args, **kwargs)
     return wrapper
 
+def vip_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        if not session.get("user"):
+            return redirect("/")
+        if not session["user"]["vip"]:
+            return redirect("/dashboard")
+        return f(*args, **kwargs)
+    return wrapper
+
 def page(title, note, items):
     u = session["user"]
     return render_template("page.html", title=title, note=note, items=items,
@@ -55,7 +65,7 @@ def dashboard():
     return render_template("dashboard.html", name=u["name"], vip=u["vip"])
 
 
-# ---------- ✏️ NORMAL PAGES: har page ka content yahan likho ----------
+# ---------- ✏️ NORMAL PAGES ----------
 @app.route("/profile")
 @login_required
 def profile():
@@ -90,23 +100,69 @@ def settings():
     ])
 
 
-# ---------- ★ VIP PAGES: sirf coreintel@nia.com se login karne par khulta hai ----------
-# Teeno pages abhi sirf placeholder hain — asli tool (Metasploit / OSINT / breach-check
-# API) yahan apne authorized setup ke hisaab se khud jodo.
-VIP_PAGES = {
-    1: ("METASPLOIT", "Apna Metasploit console/RPC yahan jodo (sirf apne authorized setup ke liye)",
-        [("status", "placeholder — apna integration add karo")]),
-    2: ("OSINT TOOL", "Apna OSINT tool/API yahan jodo",
-        [("status", "placeholder — apna integration add karo")]),
-    3: ("DATA BREACH CHECK", "Apna breach-check tool/API yahan jodo",
-        [("status", "placeholder — apna integration add karo")]),
-}
+# ============================================================
+# ★ VIP PAGES — sirf coreintel@nia.com se login karne par khulte hain
+# ============================================================
 
-@app.route("/vip/<int:n>")
-@login_required
-def vip_page(n):
-    if not session["user"]["vip"]:
-        return redirect("/dashboard")      # VIP email se login nahi kiya to andar nahi
-    if n not in VIP_PAGES:
-        abort(404)
-    return page(*VIP_PAGES[n])
+# ---- VIP 1: METASPLOIT ----
+# Isko maine jaan-bujh kar wire nahi kiya — chat mein wajah likhi hai.
+@app.route("/vip/1")
+@vip_required
+def vip_metasploit():
+    return page("METASPLOIT", "Apna Metasploit console/RPC yahan jodo (sirf apne authorized setup ke liye)",
+                [("status", "placeholder — apna integration add karo")])
+
+
+# ---- VIP 2: OSINT TOOL (domain WHOIS lookup) ----
+# requirements.txt mein 'python-whois' add karo
+@app.route("/vip/2")
+@vip_required
+def vip_osint():
+    domain = request.args.get("domain", "").strip()
+    rows = [("usage", "URL ke end mein jodo: ?domain=example.com")]
+    if domain:
+        rows = [("checked domain", domain)]
+        try:
+            import whois
+            w = whois.whois(domain)
+            rows.append(("registrar", str(w.registrar)))
+            rows.append(("created", str(w.creation_date)))
+            rows.append(("expires", str(w.expiration_date)))
+        except ImportError:
+            rows.append(("error", "requirements.txt me python-whois add karo"))
+        except Exception as e:
+            rows.append(("error", str(e)))
+    return page("OSINT TOOL", "Domain WHOIS lookup (apna OSINT source yahan badal sakte ho)", rows)
+
+
+# ---- VIP 3: DATA BREACH CHECK (Have I Been Pwned API) ----
+# 1. https://haveibeenpwned.com/API/Key se apni API key lo
+# 2. Render → Environment me HIBP_KEY naam se wahi key daal do
+@app.route("/vip/3")
+@vip_required
+def vip_breach_check():
+    email = request.args.get("email", "").strip()
+    key = os.environ.get("HIBP_KEY")
+    rows = [("usage", "URL ke end mein jodo: ?email=someone@example.com")]
+    if email and not key:
+        rows = [("error", "HIBP_KEY set nahi hai (Render → Environment)")]
+    elif email:
+        rows = [("checked email", email)]
+        try:
+            import requests
+            r = requests.get(
+                f"https://haveibeenpwned.com/api/v3/breachedaccount/{email}",
+                headers={"hibp-api-key": key, "user-agent": "coreintel-dashboard"},
+                timeout=8,
+            )
+            if r.status_code == 200:
+                rows.append(("breaches found", ", ".join(b["Name"] for b in r.json())))
+            elif r.status_code == 404:
+                rows.append(("result", "no breach found"))
+            else:
+                rows.append(("result", f"error {r.status_code}"))
+        except ImportError:
+            rows.append(("error", "requirements.txt me requests add karo"))
+        except Exception as e:
+            rows.append(("error", str(e)))
+    return page("DATA BREACH CHECK", "Have I Been Pwned se check karta hai", rows)
