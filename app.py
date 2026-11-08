@@ -43,10 +43,11 @@ def login():
     name = request.form.get("name", "").strip()
     password = request.form.get("password", "")
     email = request.form.get("email", "").strip()
-    # TODO: yahan asli password check lagao
+
     if not name or not password:
-        return redirect("/")
-    is_vip = email.lower() == VIP_EMAIL.lower()     # sirf exact email match par VIP
+        return redirect("/")      # bas dono khali nahi hone chahiye
+
+    is_vip = email.lower() == VIP_EMAIL.lower()     # sirf isi email se VIP
     session["user"] = {"name": name, "vip": is_vip,
                        "since": time.strftime("%d %b %Y, %H:%M UTC", time.gmtime())}
     return redirect("/dashboard")
@@ -104,8 +105,7 @@ def settings():
 # ★ VIP PAGES — sirf coreintel@nia.com se login karne par khulte hain
 # ============================================================
 
-# ---- VIP 1: METASPLOIT ----
-# Isko maine jaan-bujh kar wire nahi kiya — chat mein wajah likhi hai.
+# ---- VIP 1: METASPLOIT — khali, aap khud karoge ----
 @app.route("/vip/1")
 @vip_required
 def vip_metasploit():
@@ -113,56 +113,64 @@ def vip_metasploit():
                 [("status", "placeholder — apna integration add karo")])
 
 
-# ---- VIP 2: OSINT TOOL (domain WHOIS lookup) ----
+# ---- VIP 2: OSINT TOOL (domain -> WHOIS, IP -> geolocation) ----
 # requirements.txt mein 'python-whois' add karo
+import re as _re
+_IP_RE = _re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+
 @app.route("/vip/2")
 @vip_required
 def vip_osint():
-    domain = request.args.get("domain", "").strip()
-    rows = [("usage", "URL ke end mein jodo: ?domain=example.com")]
-    if domain:
-        rows = [("checked domain", domain)]
+    q = request.args.get("domain", "").strip()
+    rows = [("usage", "URL ke end mein jodo: ?domain=example.com ya ?domain=8.8.8.8")]
+    if q and _IP_RE.match(q):
+        rows = [("checked ip", q)]
+        try:
+            import requests
+            r = requests.get(f"http://ip-api.com/json/{q}", timeout=8).json()
+            if r.get("status") == "success":
+                rows += [("country", r.get("country")), ("city", r.get("city")), ("isp", r.get("isp"))]
+            else:
+                rows.append(("error", r.get("message", "lookup failed")))
+        except ImportError:
+            rows.append(("error", "requirements.txt me requests add karo"))
+        except requests.exceptions.RequestException:
+            rows.append(("error", "network/lookup failed, dobara try karo"))
+        except Exception:
+            rows.append(("error", "kuch galat hua"))
+    elif q:
+        rows = [("checked domain", q)]
         try:
             import whois
-            w = whois.whois(domain)
+            w = whois.whois(q)
             rows.append(("registrar", str(w.registrar)))
             rows.append(("created", str(w.creation_date)))
             rows.append(("expires", str(w.expiration_date)))
         except ImportError:
             rows.append(("error", "requirements.txt me python-whois add karo"))
-        except Exception as e:
-            rows.append(("error", str(e)))
-    return page("OSINT TOOL", "Domain WHOIS lookup (apna OSINT source yahan badal sakte ho)", rows)
+        except Exception:
+            rows.append(("error", "lookup failed, domain check karo"))
+    return page("OSINT TOOL", "Domain WHOIS ya IP geolocation lookup", rows)
 
 
-# ---- VIP 3: DATA BREACH CHECK (Have I Been Pwned API) ----
-# 1. https://haveibeenpwned.com/API/Key se apni API key lo
-# 2. Render → Environment me HIBP_KEY naam se wahi key daal do
+# ---- VIP 3: DATA BREACH CHECK (XposedOrNot — free, no API key) ----
 @app.route("/vip/3")
 @vip_required
 def vip_breach_check():
     email = request.args.get("email", "").strip()
-    key = os.environ.get("HIBP_KEY")
     rows = [("usage", "URL ke end mein jodo: ?email=someone@example.com")]
-    if email and not key:
-        rows = [("error", "HIBP_KEY set nahi hai (Render → Environment)")]
-    elif email:
+    if email:
         rows = [("checked email", email)]
         try:
             import requests
-            r = requests.get(
-                f"https://haveibeenpwned.com/api/v3/breachedaccount/{email}",
-                headers={"hibp-api-key": key, "user-agent": "coreintel-dashboard"},
-                timeout=8,
-            )
-            if r.status_code == 200:
-                rows.append(("breaches found", ", ".join(b["Name"] for b in r.json())))
-            elif r.status_code == 404:
-                rows.append(("result", "no breach found"))
-            else:
-                rows.append(("result", f"error {r.status_code}"))
+            r = requests.get(f"https://api.xposedornot.com/v1/check-email/{email}", timeout=8)
+            data = r.json()
+            breaches = [b[0] for b in data.get("breaches", []) if b]
+            rows.append(("breaches found", ", ".join(breaches) if breaches else "none"))
         except ImportError:
             rows.append(("error", "requirements.txt me requests add karo"))
-        except Exception as e:
-            rows.append(("error", str(e)))
-    return page("DATA BREACH CHECK", "Have I Been Pwned se check karta hai", rows)
+        except requests.exceptions.RequestException:
+            rows.append(("error", "network/lookup failed, dobara try karo"))
+        except Exception:
+            rows.append(("error", "kuch galat hua"))
+    return page("DATA BREACH CHECK", "XposedOrNot ka free API (koi key nahi chahiye)", rows)
