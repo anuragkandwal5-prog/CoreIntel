@@ -67,8 +67,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 /* ============================================================
    ✏️ SETTINGS: apne tiles aur VIP options yahan likho
    ============================================================ */
-var TILES=[['◉','Profile'],['▤','Files'],['✉','Messages'],['⚙','Settings']];
-var VIP_TILES=[['★','Secret 1'],['★','Secret 2'],['★','Secret 3']];
+var VIP_TILES=[['⚔','Metasploit'],['🔎','OSINT Tool'],['🛡','Breach Check']];
+function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
 function openTile(name){ location.href='/'+name.toLowerCase(); }   // Profile -> /profile
 function openVip(name){ location.href='/vip/'+name.replace('Secret ',''); }   // Secret 1 -> /vip/1
 /* ============================================================ */
