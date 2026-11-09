@@ -81,11 +81,7 @@ def profile():
 @app.route("/files")
 @login_required
 def files():
-    return page("FILES", "Yahan apni files ki list dikhao", [
-        ("report.pdf", "2.1 MB"),
-        ("notes.txt", "4 KB"),
-    ])
-
+    return render_template("files.html")
 @app.route("/messages")
 @login_required
 def messages():
