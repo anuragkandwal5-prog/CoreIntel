@@ -20,9 +20,15 @@ body{background:var(--bg);color:#b6ffd9;font:14px/1.4 "Share Tech Mono",ui-monos
 .mini{font-size:12px;color:var(--cy)}.v{color:var(--gold)}
 h1{margin:6px 0 4px;font-size:26px;font-weight:400;letter-spacing:3px;color:var(--g);text-shadow:0 0 12px rgba(0,255,156,.6)}
 .note{margin:0 0 12px;color:var(--dim);font-size:13px}
+.qform{display:flex;gap:8px;margin:0 0 14px}
+.qform input{flex:1;min-width:0;height:42px;padding:0 12px;border:1px solid #0a6;border-radius:6px;background:#031209;color:#d8ffe9;font:14px "Share Tech Mono",ui-monospace,monospace;outline:none}
+.qform input::placeholder{color:#3f7a5d}
+.qform input:focus{border-color:var(--g);box-shadow:0 0 0 2px rgba(0,255,156,.25)}
+.qform button{border:1px solid var(--g);border-radius:6px;background:rgba(0,255,156,.08);color:var(--g);font:14px "Share Tech Mono",monospace;padding:0 16px;cursor:pointer}
+.qform button:hover{background:var(--g);color:#012b17}
 .row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px dashed #0a4}
 .row span{color:var(--dim)}.row b{font-weight:400;color:var(--g);text-align:right;word-break:break-word}
-a:focus-visible{outline:2px solid var(--g);outline-offset:2px}
+a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -33,6 +39,12 @@ a:focus-visible{outline:2px solid var(--g);outline-offset:2px}
     <div class="mini">{{ name }}{% if vip %} · <span class="v">★ VIP</span>{% endif %}</div>
     <h1>{{ title }}</h1>
     <p class="note">{{ note }}</p>
+    {% if qparam %}
+    <form class="qform" method="get">
+      <input type="text" name="{{ qparam }}" value="{{ qvalue }}" placeholder="{{ qlabel }}" autocomplete="off">
+      <button type="submit">Check ▸</button>
+    </form>
+    {% endif %}
     {% for k, v in items %}<div class="row"><span>{{ k }}</span><b>{{ v }}</b></div>
     {% endfor %}
   </section>
