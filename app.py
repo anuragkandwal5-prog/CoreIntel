@@ -1,4 +1,4 @@
-import os, time
+import os, time, re
 from functools import wraps
 from flask import Flask, request, render_template, session, redirect, abort
 
@@ -27,10 +27,11 @@ def vip_required(f):
         return f(*args, **kwargs)
     return wrapper
 
-def page(title, note, items):
+def page(title, note, items, qparam=None, qlabel=None, qvalue=""):
     u = session["user"]
     return render_template("page.html", title=title, note=note, items=items,
-                           name=u["name"], vip=u["vip"])
+                           name=u["name"], vip=u["vip"],
+                           qparam=qparam, qlabel=qlabel, qvalue=qvalue)
 
 
 # ---------- login / logout ----------
@@ -115,14 +116,13 @@ def vip_metasploit():
 
 # ---- VIP 2: OSINT TOOL (domain -> WHOIS, IP -> geolocation) ----
 # requirements.txt mein 'python-whois' add karo
-import re as _re
-_IP_RE = _re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+_IP_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 
 @app.route("/vip/2")
 @vip_required
 def vip_osint():
     q = request.args.get("domain", "").strip()
-    rows = [("usage", "URL ke end mein jodo: ?domain=example.com ya ?domain=8.8.8.8")]
+    rows = []
     if q and _IP_RE.match(q):
         rows = [("checked ip", q)]
         try:
@@ -150,7 +150,8 @@ def vip_osint():
             rows.append(("error", "requirements.txt me python-whois add karo"))
         except Exception:
             rows.append(("error", "lookup failed, domain check karo"))
-    return page("OSINT TOOL", "Domain WHOIS ya IP geolocation lookup", rows)
+    return page("OSINT TOOL", "Domain WHOIS ya IP geolocation lookup", rows,
+                qparam="domain", qlabel="domain ya IP daalo (example.com ya 8.8.8.8)", qvalue=q)
 
 
 # ---- VIP 3: DATA BREACH CHECK (XposedOrNot — free, no API key) ----
@@ -158,7 +159,7 @@ def vip_osint():
 @vip_required
 def vip_breach_check():
     email = request.args.get("email", "").strip()
-    rows = [("usage", "URL ke end mein jodo: ?email=someone@example.com")]
+    rows = []
     if email:
         rows = [("checked email", email)]
         try:
@@ -173,4 +174,5 @@ def vip_breach_check():
             rows.append(("error", "network/lookup failed, dobara try karo"))
         except Exception:
             rows.append(("error", "kuch galat hua"))
-    return page("DATA BREACH CHECK", "XposedOrNot ka free API (koi key nahi chahiye)", rows)
+    return page("DATA BREACH CHECK", "XposedOrNot ka free API (koi key nahi chahiye)", rows,
+                qparam="email", qlabel="email daalo (someone@example.com)", qvalue=email)
