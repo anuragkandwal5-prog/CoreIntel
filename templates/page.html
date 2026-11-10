@@ -39,19 +39,13 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
     <div class="mini">{{ name }}{% if vip %} · <span class="v">★ VIP</span>{% endif %}</div>
     <h1>{{ title }}</h1>
     <p class="note">{{ note }}</p>
-   {% if qparam %}
-<form class="qform" method="get" style="display:flex; gap:8px; margin:0 0 14px">
-  {% if qoptions %}
-  <select name="stype" style="background:#031209; color:#d8ffe9; border:1px solid #0a6; border-radius:6px; padding:0 8px; outline:none; height:42px; font-family:inherit; cursor:pointer;">
-    {% for val, label in qoptions %}
-    <option value="{{ val }}" {% if val == current_stype %}selected{% endif %}>{{ label }}</option>
-    {% endfor %}
-  </select>
-  {% endif %}
-  <input type="text" name="{{ qparam }}" value="{{ qvalue }}" placeholder="{{ qlabel }}" autocomplete="off" style="flex:1;">
-  <button type="submit">Check ▸</button>
-</form>
-{% endif %}
+       {% if qparam %}
+    <form class="qform" method="get">
+      <input type="text" name="{{ qparam }}" value="{{ qvalue }}" placeholder="{{ qlabel }}" autocomplete="off">
+      <button type="submit">Check ▸</button>
+    </form>
+    {% endif %}
+
 
     {% for k, v in items %}<div class="row"><span>{{ k }}</span><b>{{ v }}</b></div>
     {% endfor %}
