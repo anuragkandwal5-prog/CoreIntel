@@ -73,7 +73,7 @@ function openTile(name){ location.href = name==='Admin Panel' ? '/admin' : '/'+n
 function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
 /* ============================================================ */
 
-var $=function(i){return document.getElement6ById(i)};
+var $=function(i){return document.getElementById(i)};
 function ts(){return new Date().toTimeString().slice(0,8)}
 function log(t){var L=$('log'),d=document.createElement('div');d.textContent=ts()+' '+t;L.appendChild(d);while(L.children.length>8)L.removeChild(L.firstChild)}
 
