@@ -39,14 +39,12 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
     <div class="mini">{{ name }}{% if vip %} · <span class="v">★ VIP</span>{% endif %}</div>
     <h1>{{ title }}</h1>
     <p class="note">{{ note }}</p>
-       {% if qparam %}
+    {% if qparam %}
     <form class="qform" method="get">
       <input type="text" name="{{ qparam }}" value="{{ qvalue }}" placeholder="{{ qlabel }}" autocomplete="off">
       <button type="submit">Check ▸</button>
     </form>
     {% endif %}
-
-
     {% for k, v in items %}<div class="row"><span>{{ k }}</span><b>{{ v }}</b></div>
     {% endfor %}
   </section>
