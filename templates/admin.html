@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ADMIN PANEL</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
+<style>
+:root{--g:#00ff9c;--bg:#020b05;--gold:#ffd23f;--cy:#5ce1ff;--dim:#5aa879;--red:#ff4d6d}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:#b6ffd9;font:14px/1.4 "Share Tech Mono",ui-monospace,Menlo,Consolas,monospace}
+#rain{position:fixed;inset:0;width:100%;height:100%;opacity:.3;z-index:0}
+.wrap{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top,0px)) 14px calc(24px + env(safe-area-inset-bottom,0px));display:grid;gap:12px}
+.top{display:flex;justify-content:space-between;gap:10px}
+.out{color:var(--g);border:1px solid var(--g);border-radius:6px;padding:8px 12px;text-decoration:none;font-size:13px;background:rgba(2,16,8,.9)}
+.out:hover{background:var(--g);color:#012b17}
+.card{background:rgba(2,16,8,.9);border:1px solid #0a6;border-radius:10px;padding:16px;box-shadow:0 0 18px rgba(0,255,156,.12)}
+h1{margin:0 0 4px;font-size:22px;font-weight:400;letter-spacing:3px;color:var(--g);text-shadow:0 0 12px rgba(0,255,156,.6)}
+h2{margin:0 0 10px;font-size:15px;font-weight:400;letter-spacing:1px;color:var(--cy)}
+.note{margin:0 0 10px;color:var(--dim);font-size:12px}
+.msg{min-height:1.3em;margin:0 0 10px;font-size:13px}
+.msg.err{color:var(--red)}.msg.ok{color:var(--g)}
+.urow{display:flex;align-items:center;gap:8px;padding:10px 0;border-top:1px dashed #0a4;flex-wrap:wrap}
+.urow:first-of-type{border-top:0}
+.uname{font-weight:400;color:#d8ffe9;min-width:110px}
+.tag{font-size:10px;padding:2px 7px;border-radius:99px;border:1px solid #0a6;color:var(--dim)}
+.tag.v{border-color:var(--gold);color:var(--gold)}
+.tag.a{border-color:var(--cy);color:var(--cy)}
+.tag.p{border-color:var(--g);color:var(--g)}
+.spacer{flex:1}
+button{border:1px solid var(--g);border-radius:6px;background:rgba(0,255,156,.08);color:var(--g);font:12px "Share Tech Mono",monospace;padding:6px 10px;cursor:pointer}
+button:hover{background:var(--g);color:#012b17}
+button.deny{border-color:var(--red);color:var(--red)}
+button.deny:hover{background:var(--red);color:#2b0007}
+.toolrow{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px dashed #0a4}
+.toolrow:first-of-type{border-top:0}
+.toggle{border-color:var(--gold);color:var(--gold)}
+.toggle.off{border-color:var(--dim);color:var(--dim)}
+.toggle:hover{background:var(--gold);color:#3a2600}
+button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
+</style>
+</head>
+<body>
+<canvas id="rain"></canvas>
+<main class="wrap">
+  <header class="top"><a class="out" href="/dashboard">← dashboard</a><a class="out" href="/logout">logout ⏻</a></header>
+
+  <section class="card">
+    <h1>ADMIN PANEL</h1>
+    {% if msg %}<p class="msg {{ msg[0] }}">{{ msg[1] }}</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>🛠 VIP Tools On/Off</h2>
+    <p class="note">Band kiya hua tool sabhi VIP users ke liye temporarily disabled ho jaata hai.</p>
+    <div class="toolrow">
+      <span>OSINT Tool</span>
+      <form method="post"><input type="hidden" name="action" value="toggle_tool"><input type="hidden" name="tool" value="osint">
+        <button class="toggle{{ '' if tools.osint else ' off' }}" type="submit">{{ 'ON ●' if tools.osint else 'OFF ○' }}</button>
+      </form>
+    </div>
+    <div class="toolrow">
+      <span>Data Breach Check</span>
+      <form method="post"><input type="hidden" name="action" value="toggle_tool"><input type="hidden" name="tool" value="breach">
+        <button class="toggle{{ '' if tools.breach else ' off' }}" type="submit">{{ 'ON ●' if tools.breach else 'OFF ○' }}</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>👤 Users ({{ users|length }})</h2>
+    {% for u in users %}
+    <div class="urow">
+      <span class="uname">{{ u.username }}</span>
+      {% if u.is_admin %}<span class="tag a">admin</span>{% endif %}
+      {% if u.is_vip %}<span class="tag v">VIP</span>{% elif u.vip_requested %}<span class="tag p">pending</span>{% endif %}
+      <span class="spacer"></span>
+      {% if u.vip_requested and not u.is_vip %}
+        <form method="post" style="display:inline"><input type="hidden" name="action" value="approve_vip"><input type="hidden" name="username" value="{{ u.username }}"><button type="submit">Approve</button></form>
+        <form method="post" style="display:inline"><input type="hidden" name="action" value="deny_vip"><input type="hidden" name="username" value="{{ u.username }}"><button class="deny" type="submit">Deny</button></form>
+      {% elif u.is_vip and not u.is_admin %}
+        <form method="post" style="display:inline"><input type="hidden" name="action" value="revoke_vip"><input type="hidden" name="username" value="{{ u.username }}"><button class="deny" type="submit">Revoke VIP</button></form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </section>
+</main>
+<script>
+(function(){
+  var c=document.getElementById('rain'),x=c.getContext('2d'),dr=[],CH='01<>/{}[];=$#&@+*アイウエオカキクケコ';
+  function rs(){c.width=innerWidth;c.height=innerHeight;dr=[];for(var i=0;i<c.width/16;i++)dr.push(Math.random()*-40)}
+  rs();addEventListener('resize',rs);
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches)return;
+  setInterval(function(){x.fillStyle='rgba(2,11,5,.14)';x.fillRect(0,0,c.width,c.height);x.fillStyle='#00ff9c';x.font='14px monospace';
+    for(var i=0;i<dr.length;i++){x.fillText(CH[Math.floor(Math.random()*CH.length)],i*16,dr[i]*16);if(dr[i]*16>c.height&&Math.random()>.97)dr[i]=0;dr[i]++}},55);
+})();
+</script>
+</body>
+</html>
