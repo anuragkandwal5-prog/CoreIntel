@@ -48,7 +48,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 </style>
 </head>
 <!-- Flask/Jinja se name aur vip yahin aate hain. Bina server ke chalao to ?name=Rahul&vip=1 se test kar sakte ho -->
-<body data-srv="{{ 'ok' }}" data-name="{{ name }}" data-vip="{{ 1 if vip else 0 }}">
+<body data-srv="{{ 'ok' }}" data-name="{{ name }}" data-vip="{{ 1 if vip else 0 }}" data-admin="{{ 1 if admin else 0 }}">
 <canvas id="rain"></canvas>
 <main class="wrap">
   <header class="top rv"><div><div class="mini">● session active</div><h1>ACCESS GRANTED</h1></div><a class="out" href="/logout">logout ⏻</a></header>
@@ -69,18 +69,20 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
    ============================================================ */
 var TILES=[['◉','Profile'],['▤','Files'],['✉','Messages'],['⚙','Settings']];
 var VIP_TILES=[['⚔','Metasploit'],['🔎','OSINT Tool'],['🛡','Breach Check']];
-function openTile(name){ location.href='/'+name.toLowerCase(); }   // Profile -> /profile
+function openTile(name){ location.href = name==='Admin Panel' ? '/admin' : '/'+name.toLowerCase(); }   // Profile -> /profile
 function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
 /* ============================================================ */
 
-var $=function(i){return document.getElementById(i)};
+var $=function(i){return document.getElement6ById(i)};
 function ts(){return new Date().toTimeString().slice(0,8)}
 function log(t){var L=$('log'),d=document.createElement('div');d.textContent=ts()+' '+t;L.appendChild(d);while(L.children.length>8)L.removeChild(L.firstChild)}
 
 (function(){
   var D=document.body.dataset, q=new URLSearchParams(location.search), RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
   var demo=D.srv!=='ok';                              // server se data nahi aaya = preview mode
-  var NAME=demo?(q.get('name')||'guest'):D.name, VIP=demo?q.get('vip')==='1':D.vip==='1';
+   var NAME=demo?(q.get('name')||'guest'):D.name, VIP=demo?q.get('vip')==='1':D.vip==='1';
+  var ADMIN=demo?q.get('admin')==='1':D.admin==='1';
+  if(ADMIN) TILES.push(['🛠','Admin Panel']);
 
   function tiles(box,list,fn,on){
     list.forEach(function(t){
