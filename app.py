@@ -58,10 +58,12 @@ def admin_required(f):
 
 
 def page(title, note, items, qparam=None, qlabel=None, qvalue=""):
+def page(title, note, items, qparam=None, qlabel=None, qvalue="", qoptions=None, current_stype="auto"):
     u = g.user
     return render_template("page.html", title=title, note=note, items=items,
                            name=u["username"], vip=u["is_vip"],
-                           qparam=qparam, qlabel=qlabel, qvalue=qvalue)
+                           qparam=qparam, qlabel=qlabel, qvalue=qvalue,
+                           qoptions=qoptions, current_stype=current_stype)
 
 
 def tool_on(name):
@@ -202,42 +204,64 @@ import re as _re
 _IP_RE = _re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 
 
+@appimport re as _re
+_IP_RE = _re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+
 @app.route("/vip/2")
 @vip_required
 def vip_osint():
     if not tool_on("osint"):
-        return page("OSINT TOOL", "Ye tool admin ne abhi band kar rakha hai", [("status", "disabled by admin")])
+        return page("OSINT TOOL", "यह टूल एडमिन ने अभी बंद कर रखा है", [("status", "disabled by admin")])
 
     q = request.args.get("domain", "").strip()
+    stype = request.args.get("stype", "auto")
     rows = []
-    if q and _IP_RE.match(q):
-        rows = [("checked ip", q)]
-        try:
-            import requests
-            r = requests.get(f"http://ip-api.com/json/{q}", timeout=8).json()
-            if r.get("status") == "success":
-                rows += [("country", r.get("country")), ("city", r.get("city")), ("isp", r.get("isp"))]
-            else:
-                rows.append(("error", r.get("message", "lookup failed")))
-        except ImportError:
-            rows.append(("error", "requirements.txt me requests add karo"))
-        except Exception:
-            rows.append(("error", "network/lookup failed, dobara try karo"))
-    elif q:
-        rows = [("checked domain", q)]
-        try:
-            import whois
-            w = whois.whois(q)
-            rows.append(("registrar", str(w.registrar)))
-            rows.append(("created", str(w.creation_date)))
-            rows.append(("expires", str(w.expiration_date)))
-        except ImportError:
-            rows.append(("error", "requirements.txt me python-whois add karo"))
-        except Exception:
-            rows.append(("error", "lookup failed, domain check karo"))
-    return page("OSINT TOOL", "Domain WHOIS ya IP geolocation lookup", rows,
-                qparam="domain", qlabel="domain ya IP daalo (example.com ya 8.8.8.8)", qvalue=q)
+    opts = [("auto", "Auto Detect"), ("ip", "IP Location"), ("domain", "Domain WHOIS"), ("user", "Username Scan")]
 
+    if q:
+        is_ip = bool(_IP_RE.match(q))
+        is_domain = "." in q and not is_ip
+
+        if stype == "ip" or (stype == "auto" and is_ip):
+            rows = [("Target IP", q)]
+            try:
+                import requests
+                r = requests.get(f"http://ip-api.com/json/{q}", timeout=8).json()
+                if r.get("status") == "success":
+                    rows += [("Country", r.get("country")), ("City", r.get("city")), ("ISP", r.get("isp"))]
+            except Exception:
+                rows.append(("Error", "Network Error"))
+
+        elif stype == "domain" or (stype == "auto" and is_domain):
+            rows = [("Target Domain", q)]
+            try:
+                import whois
+                w = whois.whois(q)
+                rows.append(("Registrar", str(w.registrar)))
+            except Exception:
+                rows.append(("Error", "Domain स्कैन फेल"))
+
+        elif stype == "user" or stype == "auto":
+            rows = [("Target Username", q)]
+            try:
+                import requests
+                from osint_targets import get_targets
+                headers = {'User-Agent': 'Mozilla/5.0'}
+                sites = get_targets(q)
+                for site_name, url in sites:
+                    try:
+                        res = requests.get(url, headers=headers, timeout=5)
+                        if res.status_code == 200:
+                            rows.append((site_name, "✅ अकाउंट मिला"))
+                        elif res.status_code == 404:
+                            rows.append((site_name, "❌ नहीं मिला"))
+                    except requests.exceptions.RequestException:
+                        rows.append((site_name, "⚠️ नेटवर्क एरर"))
+            except Exception:
+                rows.append(("Error", "यूज़रनेम स्कैन फेल"))
+
+    return page("OSINT TOOL", "IP, Domain या Username खोजें", rows,
+                qparam="domain", qlabel="यहाँ टारगेट टाइप करें...", qvalue=q, qoptions=opts, current_stype=stype)
 
 @app.route("/vip/3")
 @vip_required
