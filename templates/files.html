@@ -15,6 +15,8 @@ body{background:var(--bg);color:#b6ffd9;font:14px/1.4 "Share Tech Mono",ui-monos
 .top{display:flex;justify-content:space-between;gap:10px}
 .out{color:var(--g);border:1px solid var(--g);border-radius:6px;padding:8px 12px;text-decoration:none;font-size:13px;background:rgba(2,16,8,.9)}
 .out:hover{background:var(--g);color:#012b17}
+.navl{display:flex;gap:6px}
+.navl .out{padding:7px 10px;font-size:15px}
 .card{background:rgba(2,16,8,.9);border:1px solid #0a6;border-radius:10px;padding:16px;box-shadow:0 0 18px rgba(0,255,156,.12)}
 h1{margin:0 0 4px;font-size:22px;font-weight:400;letter-spacing:3px;color:var(--g);text-shadow:0 0 12px rgba(0,255,156,.6)}
 h2{margin:0 0 4px;font-size:15px;font-weight:400;letter-spacing:1px;color:var(--cy)}
@@ -47,7 +49,10 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offs
 <body>
 <canvas id="rain"></canvas>
 <main class="wrap">
-  <header class="top"><a class="out" href="/dashboard">← dashboard</a><a class="out" href="/logout">logout ⏻</a></header>
+  <header class="top">
+    <div class="navl"><a class="out" href="/dashboard" title="Dashboard">🏠</a><a class="out" href="/profile" title="Profile">👤</a><a class="out" href="/settings" title="Settings">⚙</a></div>
+    <a class="out" href="/logout">logout ⏻</a>
+  </header>
 
   <section class="card">
     <h1>FILES</h1>
@@ -139,7 +144,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offs
     if(/[0-9]/.test(pw))classes++; if(/[^A-Za-z0-9]/.test(pw))classes++;
     var variety=new Set(pw).size;
     var score=Math.min(100, pw.length*5 + classes*10 + variety*2
-      - (/^(.)\1+$/.test(pw)?40:0)
+      - (/^(.)\\1+$/.test(pw)?40:0)
       - (/^(123|1234|12345|123456|password|qwerty|abc123|letmein|admin)/i.test(pw)?35:0));
     score=Math.max(0,score);
     var label='Weak',color='var(--red)';
@@ -195,7 +200,7 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offs
       var salt=buf.slice(1+hlen,1+hlen+16), iv=buf.slice(1+hlen+16,1+hlen+28), enc=buf.slice(1+hlen+28);
       var key=await deriveKey(pw,salt,['decrypt']);
       var dec=await crypto.subtle.decrypt({name:'AES-GCM',iv:iv},key,enc);
-      download(dec, name.replace(/\.locked$/,'') || ('unlocked-'+name));
+      download(dec, name.replace(/\\.locked$/,'') || ('unlocked-'+name));
       msg('Unlocked! Asli file download ho gayi.','ok');
     }catch(e){ msg('Galat password ya kharab file.','err') }
   };
