@@ -22,6 +22,8 @@ def init_db():
                 is_vip BOOLEAN NOT NULL DEFAULT FALSE,
                 is_admin BOOLEAN NOT NULL DEFAULT FALSE,
                 vip_requested BOOLEAN NOT NULL DEFAULT FALSE,
+                banned BOOLEAN NOT NULL DEFAULT FALSE,
+                balance NUMERIC NOT NULL DEFAULT 100000,
                 created_at TIMESTAMP NOT NULL DEFAULT now()
             )
         """)
@@ -37,6 +39,28 @@ def init_db():
             CREATE TABLE IF NOT EXISTS settings (
                 key TEXT PRIMARY KEY,
                 value TEXT
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS holdings (
+                id SERIAL PRIMARY KEY,
+                username TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                qty NUMERIC NOT NULL,
+                avg_price NUMERIC NOT NULL,
+                UNIQUE(username, symbol)
+            )
+        """)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS trades (
+                id SERIAL PRIMARY KEY,
+                username TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                side TEXT NOT NULL,
+                qty NUMERIC NOT NULL,
+                price NUMERIC NOT NULL,
+                total NUMERIC NOT NULL,
+                created_at TIMESTAMP NOT NULL DEFAULT now()
             )
         """)
         conn.commit()
@@ -74,6 +98,24 @@ def rename_user(old, new):
         conn.commit()
 
 
+def update_email(username, email):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("UPDATE users SET email=%s WHERE username=%s", (email, username))
+        conn.commit()
+
+
+def set_banned(username, value):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("UPDATE users SET banned=%s WHERE username=%s", (value, username))
+        conn.commit()
+
+
+def set_balance(username, amount):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("UPDATE users SET balance=%s WHERE username=%s", (amount, username))
+        conn.commit()
+
+
 def request_vip(username):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE users SET vip_requested=TRUE WHERE username=%s", (username,))
@@ -88,10 +130,10 @@ def set_vip(username, value):
 
 def list_users():
     with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-        cur.execute(
-            "SELECT username, email, is_vip, is_admin, vip_requested, created_at "
-            "FROM users ORDER BY created_at"
-        )
+        cur.execute("""
+            SELECT username, email, is_vip, is_admin, vip_requested, banned, balance, created_at
+            FROM users ORDER BY created_at
+        """)
         return cur.fetchall()
 
 
@@ -122,3 +164,59 @@ def set_setting(key, value):
             (key, value),
         )
         conn.commit()
+
+
+def get_holdings(username):
+    with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT symbol, qty, avg_price FROM holdings WHERE username=%s AND qty>0 ORDER BY symbol", (username,))
+        return cur.fetchall()
+
+
+def get_trades(username, limit=20):
+    with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT symbol, side, qty, price, total, created_at FROM trades WHERE username=%s ORDER BY id DESC LIMIT %s", (username, limit))
+        return cur.fetchall()
+
+
+def buy_asset(username, symbol, qty, price):
+    """Returns (ok, message). Atomic: balance check + debit + holding update + trade log, one transaction."""
+    total = qty * price
+    with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT balance FROM users WHERE username=%s", (username,))
+        bal = float(cur.fetchone()["balance"])
+        if total > bal:
+            return False, "Paisa kam hai is trade ke liye"
+        cur.execute("SELECT qty, avg_price FROM holdings WHERE username=%s AND symbol=%s", (username, symbol))
+        h = cur.fetchone()
+        if h:
+            old_qty = float(h["qty"]); old_avg = float(h["avg_price"])
+            new_qty = old_qty + qty
+            new_avg = (old_qty * old_avg + total) / new_qty
+            cur.execute("UPDATE holdings SET qty=%s, avg_price=%s WHERE username=%s AND symbol=%s",
+                        (new_qty, new_avg, username, symbol))
+        else:
+            cur.execute("INSERT INTO holdings (username, symbol, qty, avg_price) VALUES (%s,%s,%s,%s)",
+                        (username, symbol, qty, price))
+        cur.execute("UPDATE users SET balance=balance-%s WHERE username=%s", (total, username))
+        cur.execute("INSERT INTO trades (username, symbol, side, qty, price, total) VALUES (%s,%s,%s,%s,%s,%s)",
+                    (username, symbol, "buy", qty, price, total))
+        conn.commit()
+        return True, f"{qty} {symbol.upper()} khareeda"
+
+
+def sell_asset(username, symbol, qty, price):
+    """Returns (ok, message). Atomic: holding check + credit + holding update + trade log, one transaction."""
+    total = qty * price
+    with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT qty FROM holdings WHERE username=%s AND symbol=%s", (username, symbol))
+        h = cur.fetchone()
+        have = float(h["qty"]) if h else 0
+        if qty > have:
+            return False, "Itni quantity aapke paas nahi hai"
+        new_qty = have - qty
+        cur.execute("UPDATE holdings SET qty=%s WHERE username=%s AND symbol=%s", (new_qty, username, symbol))
+        cur.execute("UPDATE users SET balance=balance+%s WHERE username=%s", (total, username))
+        cur.execute("INSERT INTO trades (username, symbol, side, qty, price, total) VALUES (%s,%s,%s,%s,%s,%s)",
+                    (username, symbol, "sell", qty, price, total))
+        conn.commit()
+        return True, f"{qty} {symbol.upper()} becha"
