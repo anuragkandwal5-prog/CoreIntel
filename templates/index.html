@@ -68,7 +68,8 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
     <button class="skip" id="skip" type="button">skip ▸</button>
 
     <form id="form" method="POST" action="/login" novalidate>
-            <div class="rv" id="g1"><h1 data-t="SECURE LOGIN">SECURE LOGIN</h1><p class="sub">naya username = naya account · purana username = login</p></div>
+      <div class="rv" id="g1"><h1 data-t="SECURE LOGIN">SECURE LOGIN</h1><p class="sub">naya username = naya account · purana username = login</p></div>
+
       <div class="rv" id="g2">
         <label for="name">$ username</label>
         <div class="f"><input id="name" name="name" type="text" placeholder="your name" autocomplete="username"></div>
@@ -82,7 +83,7 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
         </div>
       </div>
 
-            <div class="rv" id="g4">
+      <div class="rv" id="g4">
         <label for="email">$ email (optional)</label>
         <div class="f"><input id="email" name="email" type="email" placeholder="your@email.com (optional)" autocomplete="email"></div>
       </div>
@@ -129,6 +130,8 @@ function onVip(data){
 
   /* ---- login ---- */
   function show(t,bad){ ok.textContent='> '+t; ok.className='ok'+(bad?' err':'') }
+  var BANNED = new URLSearchParams(location.search).get('banned')==='1';
+  if(BANNED) show('ye account banned hai, admin se contact karo',1);
   $('eye').addEventListener('click',function(){
     var p=$('password'), hide=p.type==='password';
     p.type=hide?'text':'password'; this.textContent=hide?'HIDE':'SHOW';
@@ -173,7 +176,7 @@ function onVip(data){
     ['<h1>SECURE LOGIN</h1>','t','g1'],
     ['<input name="name">','t','g2'],
     ['<input name="password" type="password">','t','g3'],
-    ['<input name="email"> <!-- VIP optional -->','t','g4'],
+    ['<input name="email"> <!-- optional -->','t','g4'],
     ['<button>LOGIN</button>','t','g5'],
     ['> build OK — rendering ui','g','']
   ];
@@ -193,7 +196,13 @@ function onVip(data){
     document.querySelectorAll('.rv').forEach(function(e){ e.classList.add('on') });
     $('card').classList.add('built'); $('stat').textContent='● ready';
   }
-  build();
+  if(BANNED){
+    skip=true;
+    document.querySelectorAll('.rv').forEach(function(e){ e.classList.add('on') });
+    $('card').classList.add('built'); $('stat').textContent='● ready';
+  } else {
+    build();
+  }
 })();
 </script>
 </body>
