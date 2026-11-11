@@ -18,15 +18,19 @@ def init_db():
                 id SERIAL PRIMARY KEY,
                 username TEXT UNIQUE NOT NULL,
                 password_hash TEXT NOT NULL,
-                email TEXT,
-                is_vip BOOLEAN NOT NULL DEFAULT FALSE,
-                is_admin BOOLEAN NOT NULL DEFAULT FALSE,
-                vip_requested BOOLEAN NOT NULL DEFAULT FALSE,
-                banned BOOLEAN NOT NULL DEFAULT FALSE,
-                balance NUMERIC NOT NULL DEFAULT 100000,
                 created_at TIMESTAMP NOT NULL DEFAULT now()
             )
         """)
+        # purani table mein agar ye columns nahi hain to khud-ba-khud jod deta hai
+        for coldef in [
+            "email TEXT",
+            "is_vip BOOLEAN NOT NULL DEFAULT FALSE",
+            "is_admin BOOLEAN NOT NULL DEFAULT FALSE",
+            "vip_requested BOOLEAN NOT NULL DEFAULT FALSE",
+            "banned BOOLEAN NOT NULL DEFAULT FALSE",
+            "balance NUMERIC NOT NULL DEFAULT 100000",
+        ]:
+            cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {coldef}")
         cur.execute("""
             CREATE TABLE IF NOT EXISTS logs (
                 id SERIAL PRIMARY KEY,
