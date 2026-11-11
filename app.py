@@ -92,6 +92,8 @@ def login():
     else:
         if not check_password_hash(user["password_hash"], password):
             return redirect("/")      # galat password
+        if user["banned"]:
+            return redirect("/?banned=1")
 
     session["user"] = user["username"]
     db.log_event(user["username"], "logged in")
@@ -181,6 +183,12 @@ def settings():
                 db.log_event(u["username"], "requested VIP access")
                 msg = ("ok", "VIP request bhej di, admin approve karega")
 
+        elif action == "email":
+            new_email = request.form.get("new_email", "").strip()
+            db.update_email(u["username"], new_email or None)
+            db.log_event(u["username"], "email updated")
+            msg = ("ok", "Email update ho gaya")
+
         u = db.get_user(session["user"])
         g.user = u
 
@@ -195,6 +203,13 @@ def settings():
 @vip_required
 def vip_metasploit():
     return page("METASPLOIT", "Apna Metasploit console/RPC yahan jodo (sirf apne authorized setup ke liye)",
+                [("status", "placeholder — apna integration add karo")])
+
+
+@app.route("/vip/4")
+@vip_required
+def vip_sherlock():
+    return page("SHERLOCK (OSINT)", "Kisi bhi naam se accounts dhoondhne wala tool — ye maine jaan-bujh kar wire nahi kiya (wajah chat mein hai). Apna integration yahan add karo.",
                 [("status", "placeholder — apna integration add karo")])
 
 
@@ -264,6 +279,69 @@ def vip_breach_check():
 
 
 # ============================================================
+# 📈 PAPER TRADING — virtual money, real live crypto prices
+# ============================================================
+COINS = [("bitcoin", "BTC"), ("ethereum", "ETH"), ("solana", "SOL"),
+         ("dogecoin", "DOGE"), ("cardano", "ADA"), ("ripple", "XRP")]
+
+
+def fetch_prices():
+    ids = ",".join(c[0] for c in COINS)
+    try:
+        import requests
+        r = requests.get(f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies=usd", timeout=8)
+        data = r.json()
+        return {sym: data.get(cid, {}).get("usd") for cid, sym in COINS}
+    except Exception:
+        return {sym: None for cid, sym in COINS}
+
+
+@app.route("/trade", methods=["GET", "POST"])
+@login_required
+def trade():
+    u = g.user
+    msg = None
+    prices = fetch_prices()
+
+    if request.method == "POST":
+        symbol = request.form.get("symbol", "").upper()
+        side = request.form.get("side")
+        price = prices.get(symbol)
+        try:
+            qty = float(request.form.get("qty", "0"))
+        except ValueError:
+            qty = 0
+
+        if price is None:
+            msg = ("err", "Price abhi load nahi ho payi, dobara try karo")
+        elif qty <= 0:
+            msg = ("err", "Sahi quantity daalo")
+        elif side == "buy":
+            ok, text = db.buy_asset(u["username"], symbol, qty, price)
+            msg = ("ok" if ok else "err", text)
+            if ok:
+                db.log_event(u["username"], f"bought {qty} {symbol} @ {price}")
+        elif side == "sell":
+            ok, text = db.sell_asset(u["username"], symbol, qty, price)
+            msg = ("ok" if ok else "err", text)
+            if ok:
+                db.log_event(u["username"], f"sold {qty} {symbol} @ {price}")
+
+        u = db.get_user(u["username"])
+        g.user = u
+
+    holdings = db.get_holdings(u["username"])
+    for h in holdings:
+        h["price"] = prices.get(h["symbol"])
+        h["value"] = (h["price"] or 0) * float(h["qty"])
+        h["pnl"] = h["value"] - float(h["qty"]) * float(h["avg_price"])
+
+    trades = db.get_trades(u["username"], 15)
+    return render_template("trade.html", user=u, coins=COINS, prices=prices,
+                           holdings=holdings, trades=trades, msg=msg)
+
+
+# ============================================================
 # ⚙ ADMIN PANEL — sirf is_admin=True ke liye
 # ============================================================
 @app.route("/admin", methods=["GET", "POST"])
@@ -291,6 +369,25 @@ def admin_panel():
             newv = "off" if tool_on(tool) else "on"
             db.set_setting("tool_" + tool, newv)
             msg = ("ok", f"{tool} ab {newv}")
+
+        elif action == "ban":
+            db.set_banned(target, True)
+            db.log_event(target, "banned by admin")
+            msg = ("ok", f"{target} ban ho gaya")
+
+        elif action == "unban":
+            db.set_banned(target, False)
+            db.log_event(target, "unbanned by admin")
+            msg = ("ok", f"{target} ka ban hata diya")
+
+        elif action == "set_balance":
+            try:
+                amount = float(request.form.get("amount", "0"))
+                db.set_balance(target, amount)
+                db.log_event(target, f"balance set to {amount} by admin")
+                msg = ("ok", f"{target} ka balance {amount} ho gaya")
+            except ValueError:
+                msg = ("err", "Sahi number daalo")
 
     users = db.list_users()
     tools = {"osint": tool_on("osint"), "breach": tool_on("breach")}
