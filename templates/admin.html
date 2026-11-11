@@ -6,7 +6,7 @@
 <title>ADMIN PANEL</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap">
 <style>
-:root{--g:#00ff9c;--bg:#020b05;--gold:#ffd23f;--cy:#5ce1ff;--dim:#5aa879;--red:#ff4d6d}
+:root{--g:#00ff9c;--bg:#020b05;--gold:#ffd23f;--cy:#5ce1ff;--dim:#5aa883;--red:#ff4d6d}
 *{box-sizing:border-box}
 html,body{margin:0;min-height:100%}
 body{background:var(--bg);color:#b6ffd9;font:14px/1.4 "Share Tech Mono",ui-monospace,Menlo,Consolas,monospace}
@@ -15,6 +15,8 @@ body{background:var(--bg);color:#b6ffd9;font:14px/1.4 "Share Tech Mono",ui-monos
 .top{display:flex;justify-content:space-between;gap:10px}
 .out{color:var(--g);border:1px solid var(--g);border-radius:6px;padding:8px 12px;text-decoration:none;font-size:13px;background:rgba(2,16,8,.9)}
 .out:hover{background:var(--g);color:#012b17}
+.navl{display:flex;gap:6px}
+.navl .out{padding:7px 10px;font-size:15px}
 .card{background:rgba(2,16,8,.9);border:1px solid #0a6;border-radius:10px;padding:16px;box-shadow:0 0 18px rgba(0,255,156,.12)}
 h1{margin:0 0 4px;font-size:22px;font-weight:400;letter-spacing:3px;color:var(--g);text-shadow:0 0 12px rgba(0,255,156,.6)}
 h2{margin:0 0 10px;font-size:15px;font-weight:400;letter-spacing:1px;color:var(--cy)}
@@ -44,7 +46,10 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
 <body>
 <canvas id="rain"></canvas>
 <main class="wrap">
-  <header class="top"><a class="out" href="/dashboard">← dashboard</a><a class="out" href="/logout">logout ⏻</a></header>
+  <header class="top">
+    <div class="navl"><a class="out" href="/dashboard" title="Dashboard">🏠</a><a class="out" href="/profile" title="Profile">👤</a><a class="out" href="/settings" title="Settings">⚙</a></div>
+    <a class="out" href="/logout">logout ⏻</a>
+  </header>
 
   <section class="card">
     <h1>ADMIN PANEL</h1>
@@ -75,6 +80,7 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
       <span class="uname">{{ u.username }}</span>
       {% if u.is_admin %}<span class="tag a">admin</span>{% endif %}
       {% if u.is_vip %}<span class="tag v">VIP</span>{% elif u.vip_requested %}<span class="tag p">pending</span>{% endif %}
+      {% if u.banned %}<span class="tag" style="border-color:var(--red);color:var(--red)">banned</span>{% endif %}
       <span class="spacer"></span>
       {% if u.vip_requested and not u.is_vip %}
         <form method="post" style="display:inline"><input type="hidden" name="action" value="approve_vip"><input type="hidden" name="username" value="{{ u.username }}"><button type="submit">Approve</button></form>
@@ -82,6 +88,22 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
       {% elif u.is_vip and not u.is_admin %}
         <form method="post" style="display:inline"><input type="hidden" name="action" value="revoke_vip"><input type="hidden" name="username" value="{{ u.username }}"><button class="deny" type="submit">Revoke VIP</button></form>
       {% endif %}
+      {% if not u.is_admin %}
+        {% if u.banned %}
+          <form method="post" style="display:inline"><input type="hidden" name="action" value="unban"><input type="hidden" name="username" value="{{ u.username }}"><button type="submit">Unban</button></form>
+        {% else %}
+          <form method="post" style="display:inline"><input type="hidden" name="action" value="ban"><input type="hidden" name="username" value="{{ u.username }}"><button class="deny" type="submit">Ban</button></form>
+        {% endif %}
+      {% endif %}
+    </div>
+    <div class="urow" style="padding-top:0">
+      <span class="note" style="width:100%">balance: ${{ '%.2f'|format(u.balance|float) }}</span>
+      <form method="post" style="display:flex;gap:6px;width:100%">
+        <input type="hidden" name="action" value="set_balance">
+        <input type="hidden" name="username" value="{{ u.username }}">
+        <input type="number" step="0.01" name="amount" placeholder="naya balance" style="flex:1;height:34px;padding:0 8px;border:1px solid #0a6;border-radius:6px;background:#031209;color:#d8ffe9;font:12px monospace">
+        <button type="submit">Set</button>
+      </form>
     </div>
     {% endfor %}
   </section>
