@@ -15,6 +15,8 @@ body{background:var(--bg);color:#b6ffd9;font:14px/1.4 "Share Tech Mono",ui-monos
 .top{display:flex;justify-content:space-between;gap:10px}
 .out{color:var(--g);border:1px solid var(--g);border-radius:6px;padding:8px 12px;text-decoration:none;font-size:13px;background:rgba(2,16,8,.9)}
 .out:hover{background:var(--g);color:#012b17}
+.navl{display:flex;gap:6px}
+.navl .out{padding:7px 10px;font-size:15px}
 .card{background:rgba(2,16,8,.9);border:1px solid #0a6;border-radius:10px;padding:16px;box-shadow:0 0 18px rgba(0,255,156,.12);animation:in .5s both}
 @keyframes in{from{opacity:0;transform:translateY(12px)}}
 .mini{font-size:12px;color:var(--cy)}.v{color:var(--gold)}
@@ -34,7 +36,10 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
 <body>
 <canvas id="rain"></canvas>
 <main class="wrap">
-  <header class="top"><a class="out" href="/dashboard">← dashboard</a><a class="out" href="/logout">logout ⏻</a></header>
+  <header class="top">
+    <div class="navl"><a class="out" href="/dashboard" title="Dashboard">🏠</a><a class="out" href="/profile" title="Profile">👤</a><a class="out" href="/settings" title="Settings">⚙</a></div>
+    <a class="out" href="/logout">logout ⏻</a>
+  </header>
   <section class="card">
     <div class="mini">{{ name }}{% if vip %} · <span class="v">★ VIP</span>{% endif %}</div>
     <h1>{{ title }}</h1>
