@@ -20,6 +20,8 @@ h1{margin:2px 0 0;font-size:24px;font-weight:400;letter-spacing:3px;color:var(--
 h2{margin:0 0 10px;font-size:15px;font-weight:400;letter-spacing:2px}
 .out{color:var(--g);border:1px solid var(--g);border-radius:6px;padding:8px 12px;text-decoration:none;font-size:13px}
 .out:hover{background:var(--g);color:#012b17}
+.navl{display:flex;gap:6px}
+.navl .out{padding:7px 10px;font-size:15px}
 #typed{min-height:1.4em;color:var(--g)}
 #typed::after{content:"";display:inline-block;width:7px;height:13px;margin-left:2px;background:var(--g);vertical-align:-2px;animation:bl 1s steps(1) infinite}
 @keyframes bl{50%{opacity:0}}
@@ -51,7 +53,11 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 <body data-srv="{{ 'ok' }}" data-name="{{ name }}" data-vip="{{ 1 if vip else 0 }}" data-admin="{{ 1 if admin else 0 }}">
 <canvas id="rain"></canvas>
 <main class="wrap">
-  <header class="top rv"><div><div class="mini">● session active</div><h1>ACCESS GRANTED</h1></div><a class="out" href="/logout">logout ⏻</a></header>
+  <header class="top rv">
+    <div class="navl"><a class="out" href="/profile" title="Profile">👤</a><a class="out" href="/settings" title="Settings">⚙</a></div>
+    <div style="text-align:center"><div class="mini">● session active</div><h1>ACCESS GRANTED</h1></div>
+    <a class="out" href="/logout">logout ⏻</a>
+  </header>
   <section class="card rv"><div id="typed"></div><div class="chips"><span class="chip" id="who"></span><span class="chip v" id="vipc" hidden>★ VIP</span></div></section>
   <section class="stats rv">
     <div class="st"><span>CPU</span><b id="s0">0%</b><i><u id="b0"></u></i></div>
@@ -67,10 +73,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 /* ============================================================
    ✏️ SETTINGS: apne tiles aur VIP options yahan likho
    ============================================================ */
-var TILES=[['◉','Profile'],['▤','Files'],['✉','Messages'],['⚙','Settings']];
-var VIP_TILES=[['⚔','Metasploit'],['🔎','OSINT Tool'],['🛡','Breach Check']];
+var TILES=[['◉','Profile'],['▤','Files'],['✉','Messages'],['⚙','Settings'],['📈','Trading']];
+var VIP_TILES=[['⚔','Metasploit'],['🔎','OSINT Tool'],['🛡','Breach Check'],['🕵','Sherlock']];
 function openTile(name){ location.href = name==='Admin Panel' ? '/admin' : '/'+name.toLowerCase(); }   // Profile -> /profile
-function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
+function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3,'Sherlock':4}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
 /* ============================================================ */
 
 var $=function(i){return document.getElementById(i)};
@@ -80,7 +86,7 @@ function log(t){var L=$('log'),d=document.createElement('div');d.textContent=ts(
 (function(){
   var D=document.body.dataset, q=new URLSearchParams(location.search), RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
   var demo=D.srv!=='ok';                              // server se data nahi aaya = preview mode
-   var NAME=demo?(q.get('name')||'guest'):D.name, VIP=demo?q.get('vip')==='1':D.vip==='1';
+  var NAME=demo?(q.get('name')||'guest'):D.name, VIP=demo?q.get('vip')==='1':D.vip==='1';
   var ADMIN=demo?q.get('admin')==='1':D.admin==='1';
   if(ADMIN) TILES.push(['🛠','Admin Panel']);
 
