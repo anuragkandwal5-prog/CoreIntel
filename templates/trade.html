@@ -40,6 +40,9 @@ h2{margin:0 0 10px;font-size:15px;font-weight:400;letter-spacing:1px;color:var(-
 .trow{display:flex;justify-content:space-between;padding:6px 0;border-top:1px dashed #0a4;font-size:12px;color:var(--dim)}
 .trow:first-of-type{border-top:0}
 .trow .buy{color:var(--g)}.trow .sell{color:var(--red)}
+.chartpick{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+.chartpick .out{padding:5px 10px;font-size:12px}
+.chartpick .on{background:var(--g);color:#012b17}
 button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offset:2px}
 </style>
 </head>
@@ -56,6 +59,16 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offs
     <p class="note">Virtual money, real live crypto prices (CoinGecko). Seekhne ke liye — asli paisa involved nahi hai.</p>
     <div class="bal">${{ '%.2f'|format(user.balance|float) }}</div>
     {% if msg %}<p class="msg {{ msg[0] }}">{{ msg[1] }}</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>📡 {{ chart_coin.upper() }} · 24h</h2>
+    <canvas id="radar" width="620" height="260" style="width:100%;height:auto;display:block"></canvas>
+    <div class="chartpick">
+      {% for cid, sym in coins %}
+      <a class="out{{ ' on' if cid==chart_coin else '' }}" href="/trade?chart={{ cid }}">{{ sym }}</a>
+      {% endfor %}
+    </div>
   </section>
 
   <section class="card">
@@ -97,6 +110,47 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offs
 </main>
 <script>
 (function(){
+  var HIST = {{ (history or [])|tojson }};
+  var rc = document.getElementById('radar');
+  if(rc && HIST.length>1){
+    var rx = rc.getContext('2d'), W=rc.width, H=rc.height, cx=W/2, cy=H/2, R=Math.min(W,H)/2-14;
+    var prices = HIST.map(function(p){return p[1]});
+    var lo = Math.min.apply(null,prices), hi = Math.max.apply(null,prices);
+    var first = prices[0], last = prices[prices.length-1];
+    var pct = ((last-first)/first*100);
+    var up = pct >= 0;
+    var sweep = 0;
+    function ring(r,a){ rx.beginPath(); rx.arc(cx,cy,r,0,Math.PI*2); rx.strokeStyle='rgba(0,255,156,'+a+')'; rx.lineWidth=1; rx.stroke() }
+    function draw(){
+      rx.clearRect(0,0,W,H);
+      // radar rings + crosshair
+      for(var i=1;i<=4;i++) ring(R*i/4, .18);
+      rx.strokeStyle='rgba(0,255,156,.15)'; rx.beginPath();
+      rx.moveTo(cx-R,cy); rx.lineTo(cx+R,cy); rx.moveTo(cx,cy-R); rx.lineTo(cx,cy+R); rx.stroke();
+      // sweep
+      var g = rx.createConicGradient ? rx.createConicGradient(sweep, cx, cy) : null;
+      rx.save(); rx.beginPath(); rx.moveTo(cx,cy);
+      rx.arc(cx,cy,R,sweep-.5,sweep); rx.closePath();
+      rx.fillStyle='rgba(0,255,156,.08)'; rx.fill(); rx.restore();
+      sweep += 0.02; if(sweep>Math.PI*2) sweep=0;
+      // price line (left->right across full width, independent of the radar rings — just styled to match)
+      rx.beginPath();
+      prices.forEach(function(p,i){
+        var px = 10 + (W-20)*i/(prices.length-1);
+        var py = H-16 - (H-32)*((p-lo)/((hi-lo)||1));
+        i===0 ? rx.moveTo(px,py) : rx.lineTo(px,py);
+      });
+      rx.strokeStyle = up?'#00ff9c':'#ff4d6d'; rx.lineWidth=2; rx.shadowColor=rx.strokeStyle; rx.shadowBlur=8; rx.stroke(); rx.shadowBlur=0;
+      // price label
+      rx.fillStyle='#b6ffd9'; rx.font='12px monospace';
+      rx.fillText('$'+last.toFixed(last<1?4:2), 10, 16);
+      rx.fillStyle = up?'#00ff9c':'#ff4d6d';
+      rx.fillText((up?'+':'')+pct.toFixed(2)+'%', 10, 32);
+      requestAnimationFrame(draw);
+    }
+    draw();
+  }
+
   var c=document.getElementById('rain'),x=c.getContext('2d'),dr=[],CH='01<>/{}[];=$#&@+*アイウエオカキクケコ';
   function rs(){c.width=innerWidth;c.height=innerHeight;dr=[];for(var i=0;i<c.width/16;i++)dr.push(Math.random()*-40)}
   rs();addEventListener('resize',rs);
