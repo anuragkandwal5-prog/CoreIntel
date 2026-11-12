@@ -73,10 +73,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 /* ============================================================
    ✏️ SETTINGS: apne tiles aur VIP options yahan likho
    ============================================================ */
-var TILES=[['◉','Profile'],['▤','Files'],['✉','Messages'],['⚙','Settings'],['📈','Trading']];
-var VIP_TILES=[['⚔','Metasploit'],['🔎','OSINT Tool'],['🛡','Breach Check'],['🕵','Sherlock']];
+var TILES=[['▤','Files'],['✉','Messages'],['📈','Trading']];
+var VIP_TILES=[['⚔','Metasploit'],['🔎','OSINT Tool'],['🛡','Breach Check'],['🕵','Sherlock'],['🤖','AI Chat']];
 function openTile(name){ var MAP={'Admin Panel':'/admin','Trading':'/trade'}; location.href = MAP[name] || '/'+name.toLowerCase(); }   // Profile -> /profile
-function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3,'Sherlock':4}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
+function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3,'Sherlock':4,'AI Chat':5}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
 /* ============================================================ */
 
 var $=function(i){return document.getElementById(i)};
