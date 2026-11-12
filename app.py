@@ -213,6 +213,41 @@ def vip_sherlock():
                 [("status", "placeholder — apna integration add karo")])
 
 
+# ---- VIP 5: AI CHAT (OpenRouter — free account + free key chahiye, bina key kuch nahi hota) ----
+OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
+
+
+@app.route("/vip/5")
+@vip_required
+def vip_ai_chat():
+    return render_template("ai_chat.html", key_set=bool(OPENROUTER_KEY), model=OPENROUTER_MODEL)
+
+
+@app.route("/api/ai_chat", methods=["POST"])
+@vip_required
+def api_ai_chat():
+    if not OPENROUTER_KEY:
+        return {"error": "OPENROUTER_API_KEY set nahi hai (Render → Environment)"}, 400
+    history = request.json.get("messages", [])
+    if not history:
+        return {"error": "message khali hai"}, 400
+    try:
+        import requests
+        r = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers={"Authorization": f"Bearer {OPENROUTER_KEY}", "Content-Type": "application/json"},
+            json={"model": OPENROUTER_MODEL, "messages": history},
+            timeout=25,
+        )
+        data = r.json()
+        if "choices" not in data:
+            return {"error": data.get("error", {}).get("message", "AI se jawab nahi mila")}, 502
+        return {"reply": data["choices"][0]["message"]["content"]}
+    except Exception:
+        return {"error": "network error, dobara try karo"}, 502
+
+
 import re as _re
 _IP_RE = _re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 
@@ -296,6 +331,19 @@ def fetch_prices():
         return {sym: None for cid, sym in COINS}
 
 
+def fetch_history(coin_id):
+    """Last 24h price points for the radar chart: [[timestamp_ms, price], ...]"""
+    try:
+        import requests
+        r = requests.get(
+            f"https://api.coingecko.com/api/v3/coins/{coin_id}/market_chart?vs_currency=usd&days=1",
+            timeout=8,
+        )
+        return r.json().get("prices", [])
+    except Exception:
+        return []
+
+
 @app.route("/trade", methods=["GET", "POST"])
 @login_required
 def trade():
@@ -337,8 +385,13 @@ def trade():
         h["pnl"] = h["value"] - float(h["qty"]) * float(h["avg_price"])
 
     trades = db.get_trades(u["username"], 15)
+    chart_coin = request.args.get("chart", "bitcoin")
+    if chart_coin not in [c[0] for c in COINS]:
+        chart_coin = "bitcoin"
+    history = fetch_history(chart_coin)
     return render_template("trade.html", user=u, coins=COINS, prices=prices,
-                           holdings=holdings, trades=trades, msg=msg)
+                           holdings=holdings, trades=trades, msg=msg,
+                           history=history, chart_coin=chart_coin)
 
 
 # ============================================================
