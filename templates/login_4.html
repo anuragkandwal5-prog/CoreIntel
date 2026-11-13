@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Login</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font-family:Poppins,system-ui,sans-serif;color:#1b1340;overflow:hidden}
+.bg{position:fixed;inset:0;background:linear-gradient(125deg,#8ec5fc,#e0c3fc,#fbc2eb,#a6c1ee);background-size:300% 300%;animation:aur 14s ease-in-out infinite}
+@keyframes aur{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+.blob{position:fixed;border-radius:50%;filter:blur(40px);opacity:.5}
+.b1{width:280px;height:280px;background:#ff9ad5;top:-60px;left:-60px}
+.b2{width:320px;height:320px;background:#8ec5fc;bottom:-80px;right:-60px}
+.wrap{position:relative;z-index:1;min-height:100dvh;display:grid;place-items:center;padding:calc(16px + env(safe-area-inset-top,0px)) 14px calc(16px + env(safe-area-inset-bottom,0px))}
+.card{width:min(400px,100%);background:rgba(255,255,255,.55);backdrop-filter:blur(18px);border:1px solid rgba(255,255,255,.6);border-radius:20px;padding:28px 24px;box-shadow:0 10px 40px rgba(80,60,150,.25)}
+h1{margin:0 0 4px;font-weight:600;font-size:24px;color:#2c1a5e}
+.sub{margin:0 0 20px;font-size:12px;color:#5c4a8a}
+label{display:block;margin:12px 0 6px;font-size:12px;color:#473a73;font-weight:500}
+input{width:100%;height:46px;border-radius:12px;border:1px solid rgba(100,80,160,.25);background:rgba(255,255,255,.7);color:#241845;padding:0 14px;font:14px Poppins,sans-serif;outline:none}
+input::placeholder{color:#9284b8}
+input:focus{border-color:#8b5cf6;box-shadow:0 0 0 3px rgba(139,92,246,.25)}
+.go{width:100%;height:48px;margin-top:20px;border:0;border-radius:12px;background:linear-gradient(90deg,#8b5cf6,#ec4899);color:#fff;font:600 15px Poppins,sans-serif;cursor:pointer;box-shadow:0 8px 20px rgba(139,92,246,.4)}
+.go:hover{filter:brightness(1.06)}
+.msg{min-height:1.3em;margin-top:10px;font-size:12px;text-align:center;color:#d6336c;font-weight:500}
+button:focus-visible,input:focus-visible{outline:2px solid #8b5cf6;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){.bg{animation:none}}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="blob b1"></div><div class="blob b2"></div>
+<div class="wrap">
+  <form class="card" method="POST" action="/login" novalidate>
+    <h1>Welcome back</h1>
+    <p class="sub">Naya username = naya account · purana username = login</p>
+    <label for="name">Username</label>
+    <input id="name" name="name" type="text" placeholder="Your name" required autocomplete="username">
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" placeholder="••••••••" required autocomplete="current-password">
+    <label for="email">Email (optional)</label>
+    <input id="email" name="email" type="email" placeholder="you@example.com">
+    <button class="go" type="submit">Sign in</button>
+    <p class="msg" id="ok"></p>
+  </form>
+</div>
+<script>
+if(new URLSearchParams(location.search).get('banned')==='1'){
+  document.getElementById('ok').textContent='This account has been suspended. Contact admin.';
+}
+</script>
+</body>
+</html>
