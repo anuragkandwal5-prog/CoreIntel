@@ -1,4 +1,4 @@
-import os, time
+import os, time, random
 from functools import wraps
 from flask import Flask, request, render_template, session, redirect, abort, g
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -69,9 +69,13 @@ def tool_on(name):
 
 
 # ---------- login / signup / logout ----------
+LOGIN_PAGES = ["logins/login_1.html", "logins/login_2.html", "logins/login_3.html",
+               "logins/login_4.html", "logins/login_5.html"]
+
+
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return render_template(random.choice(LOGIN_PAGES))
 
 
 @app.route("/login", methods=["POST"])
@@ -214,8 +218,68 @@ def vip_sherlock():
 
 
 # ---- VIP 5: AI CHAT (OpenRouter — free account + free key chahiye, bina key kuch nahi hota) ----
+@app.route("/vip/6")
+@vip_required
+def vip_yt_downloader():
+    return page("YT DOWNLOADER", "yt-dlp wala video downloader — ye maine jaan-bujh kar wire nahi kiya (wajah chat mein hai). Apna integration yahan add karo.",
+                [("status", "placeholder — apna integration add karo")])
+
+
+@app.route("/vip/7")
+@vip_required
+def vip_stream_anywhere():
+    return page("STREAM ANYWHERE", "Kahin ka bhi link daalkar video chalane wala player — ye maine jaan-bujh kar wire nahi kiya (wajah chat mein hai). Apna integration yahan add karo.",
+                [("status", "placeholder — apna integration add karo")])
+
+
+from countries import COUNTRIES
+
+
+def wb_latest(iso3, indicator):
+    """Latest non-null (value, year) from a free World Bank indicator. None if unavailable."""
+    import requests
+    r = requests.get(
+        f"https://api.worldbank.org/v2/country/{iso3}/indicator/{indicator}",
+        params={"format": "json", "per_page": 20}, timeout=8,
+    )
+    data = r.json()
+    if len(data) < 2 or not data[1]:
+        return None
+    for row in data[1]:
+        if row.get("value") is not None:
+            return row["value"], row["date"]
+    return None
+
+
+@app.route("/vip/8")
+@vip_required
+def vip_threat_detector():
+    sel = request.args.get("c", "IND")
+    error = None
+    try:
+        pop_row = wb_latest(sel, "SP.POP.TOTL")
+        crime_row = wb_latest(sel, "VC.IHR.PSRC.P5")
+        acc_row = wb_latest(sel, "SH.STA.TRAF.P5")
+        if not (pop_row and crime_row and acc_row):
+            error = "Is country ka data abhi available nahi hai"
+            return render_template("threat.html", countries=COUNTRIES, sel=sel, error=error)
+        pop, _ = pop_row
+        crime_rate, year = crime_row
+        acc_rate, year2 = acc_row
+        return render_template(
+            "threat.html", countries=COUNTRIES, sel=sel, error=None,
+            crime_total=round(crime_rate * pop / 100000),
+            crime_rate=crime_rate, year=year,
+            acc_total=round(acc_rate * pop / 100000),
+            acc_rate=acc_rate, year2=year2,
+        )
+    except Exception:
+        error = "World Bank se data nahi mila, dobara try karo"
+        return render_template("threat.html", countries=COUNTRIES, sel=sel, error=error)
+
+
 OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
+OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openrouter/free")
 
 
 @app.route("/vip/5")
