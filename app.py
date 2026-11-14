@@ -69,9 +69,8 @@ def tool_on(name):
 
 
 # ---------- login / signup / logout ----------
-LOGIN_PAGES = ["logins/login_1.html", "logins/login_2.html", "logins/login_3.html",
-               "logins/login_4.html", "logins/login_5.html"]
-
+LOGIN_PAGES = ["login_1.html", "login_2.html", "login_3.html",
+               "login_4.html", "login_5.html"]
 
 @app.route("/")
 def home():
