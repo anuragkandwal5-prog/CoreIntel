@@ -1,4 +1,4 @@
-import os, time, random
+import os, time
 from functools import wraps
 from flask import Flask, request, render_template, session, redirect, abort, g
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -69,9 +69,9 @@ def tool_on(name):
 
 
 # ---------- login / signup / logout ----------
-LOGIN_PAGES = ["login_1.html", "login_2.html", "login_3.html",
-               "login_4.html", "login_5.html"]
-
+@app.route("/")
+def home():
+    return render_template("login_1.html")
 @app.route("/")
 def home():
     return render_template(random.choice(LOGIN_PAGES))
