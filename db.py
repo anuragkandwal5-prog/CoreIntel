@@ -21,7 +21,6 @@ def init_db():
                 created_at TIMESTAMP NOT NULL DEFAULT now()
             )
         """)
-        # purani table mein agar ye columns nahi hain to khud-ba-khud jod deta hai
         for coldef in [
             "email TEXT",
             "is_vip BOOLEAN NOT NULL DEFAULT FALSE",
@@ -29,6 +28,7 @@ def init_db():
             "vip_requested BOOLEAN NOT NULL DEFAULT FALSE",
             "banned BOOLEAN NOT NULL DEFAULT FALSE",
             "balance NUMERIC NOT NULL DEFAULT 100000",
+            "followers INTEGER NOT NULL DEFAULT 0",
         ]:
             cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {coldef}")
         cur.execute("""
@@ -117,6 +117,12 @@ def set_banned(username, value):
 def set_balance(username, amount):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE users SET balance=%s WHERE username=%s", (amount, username))
+        conn.commit()
+
+
+def set_followers(username, count):
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("UPDATE users SET followers=%s WHERE username=%s", (count, username))
         conn.commit()
 
 
