@@ -72,9 +72,6 @@ def tool_on(name):
 @app.route("/")
 def home():
     return render_template("login_1.html")
-@app.route("/")
-def home():
-    return render_template(random.choice(LOGIN_PAGES))
 
 
 @app.route("/login", methods=["POST"])
@@ -216,7 +213,6 @@ def vip_sherlock():
                 [("status", "placeholder — apna integration add karo")])
 
 
-# ---- VIP 5: AI CHAT (OpenRouter — free account + free key chahiye, bina key kuch nahi hota) ----
 @app.route("/vip/6")
 @vip_required
 def vip_yt_downloader():
@@ -229,6 +225,139 @@ def vip_yt_downloader():
 def vip_stream_anywhere():
     return page("STREAM ANYWHERE", "Kahin ka bhi link daalkar video chalane wala player — ye maine jaan-bujh kar wire nahi kiya (wajah chat mein hai). Apna integration yahan add karo.",
                 [("status", "placeholder — apna integration add karo")])
+
+
+# ---- VIP 9: DNS RECORDS LOOKUP ----
+@app.route("/vip/9")
+@vip_required
+def vip_dns():
+    domain = request.args.get("domain", "").strip()
+    rows = []
+    if domain:
+        rows = [("checked domain", domain)]
+        try:
+            import dns.resolver
+            for rtype in ("A", "MX", "TXT", "NS"):
+                try:
+                    ans = dns.resolver.resolve(domain, rtype, lifetime=6)
+                    vals = ", ".join(str(r).strip('"') for r in ans)
+                    rows.append((rtype, vals))
+                except dns.resolver.NoAnswer:
+                    rows.append((rtype, "—"))
+                except Exception:
+                    rows.append((rtype, "lookup failed"))
+        except ImportError:
+            rows.append(("error", "requirements.txt me dnspython add karo"))
+    return page("DNS RECORDS", "Domain ke A/MX/TXT/NS records (free, no key)", rows,
+                qparam="domain", qlabel="domain daalo (example.com)", qvalue=domain)
+
+
+# ---- VIP 10: SSL CERTIFICATE CHECKER ----
+@app.route("/vip/10")
+@vip_required
+def vip_ssl():
+    domain = request.args.get("domain", "").strip()
+    rows = []
+    if domain:
+        rows = [("checked domain", domain)]
+        try:
+            import ssl, socket, datetime
+            ctx = ssl.create_default_context()
+            with socket.create_connection((domain, 443), timeout=6) as sock:
+                with ctx.wrap_socket(sock, server_hostname=domain) as s:
+                    cert = s.getpeercert()
+            issuer = dict(x[0] for x in cert.get("issuer", []))
+            expires = datetime.datetime.strptime(cert["notAfter"], "%b %d %H:%M:%S %Y %Z")
+            days_left = (expires - datetime.datetime.utcnow()).days
+            rows.append(("issuer", issuer.get("organizationName") or issuer.get("commonName", "?")))
+            rows.append(("valid from", cert.get("notBefore")))
+            rows.append(("expires", cert.get("notAfter")))
+            rows.append(("days left", str(days_left)))
+        except Exception:
+            rows.append(("error", "connect nahi ho paya ya cert nahi mila"))
+    return page("SSL CERTIFICATE", "HTTPS certificate ki details (free, no key)", rows,
+                qparam="domain", qlabel="domain daalo (example.com)", qvalue=domain)
+
+
+# ---- VIP 11: CVE / VULNERABILITY LOOKUP (NVD — free, no key) ----
+@app.route("/vip/11")
+@vip_required
+def vip_cve():
+    q = request.args.get("domain", "").strip()
+    rows = []
+    if q:
+        rows = [("searched", q)]
+        try:
+            import requests
+            param = "cveId" if q.upper().startswith("CVE-") else "keywordSearch"
+            r = requests.get(
+                "https://services.nvd.nist.gov/rest/json/cves/2.0",
+                params={param: q, "resultsPerPage": 5}, timeout=10,
+            )
+            data = r.json()
+            vulns = data.get("vulnerabilities", [])
+            if not vulns:
+                rows.append(("result", "kuch nahi mila"))
+            for v in vulns:
+                cve = v.get("cve", {})
+                cid = cve.get("id", "?")
+                desc = next((d["value"] for d in cve.get("descriptions", []) if d.get("lang") == "en"), "")[:140]
+                rows.append((cid, desc))
+        except Exception:
+            rows.append(("error", "NVD se data nahi mila, dobara try karo"))
+    return page("CVE LOOKUP", "NIST NVD ka free vulnerability database (keyword ya CVE-ID)", rows,
+                qparam="domain", qlabel="keyword ya CVE-ID daalo (openssl / CVE-2021-44228)", qvalue=q)
+
+
+# ---- VIP 12: WAYBACK MACHINE CHECKER ----
+@app.route("/vip/12")
+@vip_required
+def vip_wayback():
+    domain = request.args.get("domain", "").strip()
+    rows = []
+    if domain:
+        rows = [("checked", domain)]
+        try:
+            import requests
+            r = requests.get("http://archive.org/wayback/available", params={"url": domain}, timeout=8)
+            snap = r.json().get("archived_snapshots", {}).get("closest")
+            if snap:
+                rows.append(("snapshot mila", "haan"))
+                rows.append(("date", snap.get("timestamp", "?")))
+                rows.append(("link", snap.get("url", "?")))
+            else:
+                rows.append(("result", "archive.org par koi snapshot nahi mila"))
+        except Exception:
+            rows.append(("error", "archive.org se data nahi mila, dobara try karo"))
+    return page("WAYBACK MACHINE", "Domain archive.org par kab-kab save hua (free, no key)", rows,
+                qparam="domain", qlabel="domain daalo (example.com)", qvalue=domain)
+
+
+# ---- VIP 13: GITHUB PUBLIC PROFILE LOOKUP ----
+@app.route("/vip/13")
+@vip_required
+def vip_github():
+    uname = request.args.get("domain", "").strip()
+    rows = []
+    if uname:
+        rows = [("checked username", uname)]
+        try:
+            import requests
+            r = requests.get(f"https://api.github.com/users/{uname}", timeout=8)
+            if r.status_code == 404:
+                rows.append(("result", "ye GitHub username exist nahi karta"))
+            else:
+                d = r.json()
+                rows.append(("name", d.get("name") or "—"))
+                rows.append(("bio", d.get("bio") or "—"))
+                rows.append(("public repos", d.get("public_repos")))
+                rows.append(("followers", d.get("followers")))
+                rows.append(("following", d.get("following")))
+                rows.append(("joined", (d.get("created_at") or "")[:10]))
+        except Exception:
+            rows.append(("error", "GitHub se data nahi mila, dobara try karo"))
+    return page("GITHUB LOOKUP", "Kisi bhi GitHub username ki public profile (free, no key)", rows,
+                qparam="domain", qlabel="GitHub username daalo", qvalue=uname)
 
 
 from countries import COUNTRIES
