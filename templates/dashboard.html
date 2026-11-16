@@ -73,9 +73,10 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 /* ============================================================
    ✏️ SETTINGS: apne tiles aur VIP options yahan likho
    ============================================================ */
-var VIP_TILES=[['⚔','Metasploit'],['🔎','OSINT Tool'],['🛡','Breach Check'],['🕵','Sherlock'],['🤖','AI Chat'],['⬇','YT Downloader'],['📡','Stream Anywhere']];
+var TILES=[['▤','Files'],['✉','Messages'],['📈','Trading']];
+var VIP_TILES=[['⚔','Metasploit'],['🔎','OSINT Tool'],['🛡','Breach Check'],['🕵','Sherlock'],['🤖','AI Chat'],['⬇','YT Downloader'],['📡','Stream Anywhere'],['🚨','Threat Detector'],['🌐','DNS Lookup'],['🔏','SSL Checker'],['🐞','CVE Lookup'],['🕰','Wayback'],['🐙','GitHub Lookup']];
 function openTile(name){ var MAP={'Admin Panel':'/admin','Trading':'/trade'}; location.href = MAP[name] || '/'+name.toLowerCase(); }   // Profile -> /profile
-function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3,'Sherlock':4,'AI Chat':5,'YT Downloader':6,'Stream Anywhere':7}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
+function openVip(name){ var VIP_MAP={'Metasploit':1,'OSINT Tool':2,'Breach Check':3,'Sherlock':4,'AI Chat':5,'YT Downloader':6,'Stream Anywhere':7,'Threat Detector':8,'DNS Lookup':9,'SSL Checker':10,'CVE Lookup':11,'Wayback':12,'GitHub Lookup':13}; location.href='/vip/'+VIP_MAP[name]; }   // Metasploit -> /vip/1
 /* ============================================================ */
 
 var $=function(i){return document.getElementById(i)};
@@ -84,7 +85,7 @@ function log(t){var L=$('log'),d=document.createElement('div');d.textContent=ts(
 
 (function(){
   var D=document.body.dataset, q=new URLSearchParams(location.search), RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
-  var demo=D.srv!=='ok';                              // server se data nahi aaya = preview mode
+  var demo=D.srv!=='ok';
   var NAME=demo?(q.get('name')||'guest'):D.name, VIP=demo?q.get('vip')==='1':D.vip==='1';
   var ADMIN=demo?q.get('admin')==='1':D.admin==='1';
   if(ADMIN) TILES.push(['🛠','Admin Panel']);
@@ -102,19 +103,16 @@ function log(t){var L=$('log'),d=document.createElement('div');d.textContent=ts(
   paintVip(); $('who').textContent='user: '+NAME;
   if(demo){var b=document.createElement('button');b.className='demo';b.textContent='demo: VIP on/off';b.onclick=function(){VIP=!VIP;paintVip()};document.body.appendChild(b)}
 
-  /* matrix rain */
   var c=$('rain'),x=c.getContext('2d'),dr=[],CH='01<>/{}[];=$#&@+*アイウエオカキクケコ';
   function rs(){c.width=innerWidth;c.height=innerHeight;dr=[];for(var i=0;i<c.width/16;i++)dr.push(Math.random()*-40)}
   rs();addEventListener('resize',rs);
   if(!RM)setInterval(function(){x.fillStyle='rgba(2,11,5,.14)';x.fillRect(0,0,c.width,c.height);x.fillStyle='#00ff9c';x.font='14px monospace';
     for(var i=0;i<dr.length;i++){x.fillText(CH[Math.floor(Math.random()*CH.length)],i*16,dr[i]*16);if(dr[i]*16>c.height&&Math.random()>.97)dr[i]=0;dr[i]++}},55);
 
-  /* intro: sections reveal one by one, welcome line types itself */
   var msg='> welcome back, '+NAME+(VIP?'  [VIP]':'');
   Array.prototype.forEach.call(document.querySelectorAll('.rv'),function(e,i){setTimeout(function(){e.classList.add('on')},RM?0:i*220)});
   var n=0;(function ty(){$('typed').textContent=msg.slice(0,++n);if(n<msg.length&&!RM)setTimeout(ty,35);else if(RM)$('typed').textContent=msg})();
 
-  /* stats + live log (demo data: apna real data yahan lagao) */
   function stats(){for(var i=0;i<3;i++){var v=Math.floor(20+Math.random()*70);$('s'+i).textContent=v+'%';$('b'+i).style.width=v+'%'}}
   var MSG=['scan complete: 0 threats','firewall: all ports closed','tunnel: encrypted','heartbeat ok','sync: 0 changes','auth token refreshed'];
   setTimeout(stats,600);log('> session started for '+NAME);if(VIP)log('> VIP privileges loaded');
