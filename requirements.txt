@@ -3,3 +3,4 @@ gunicorn
 requests
 python-whois
 psycopg2-binary
+dnspython
