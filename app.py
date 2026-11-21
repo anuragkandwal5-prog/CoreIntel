@@ -44,6 +44,19 @@ def vip_required(f):
     return wrapper
 
 
+def shadow_required(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        u = current_user()
+        if not u:
+            return redirect("/")
+        if not u["is_shadow_emperor"]:
+            return redirect("/dashboard")
+        g.user = u
+        return f(*args, **kwargs)
+    return wrapper
+
+
 def admin_required(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
@@ -111,7 +124,8 @@ def logout():
 @login_required
 def dashboard():
     u = g.user
-    return render_template("dashboard.html", name=u["username"], vip=u["is_vip"], admin=u["is_admin"])
+    return render_template("dashboard.html", name=u["username"], vip=u["is_vip"], admin=u["is_admin"],
+                           shadow=u["is_shadow_emperor"], shadow_list=db.list_shadow_emperors())
 
 
 # ---------- NORMAL PAGES ----------
@@ -199,6 +213,12 @@ def settings():
 # ★ VIP PAGES
 # ============================================================
 
+@app.route("/shadow-eye")
+@shadow_required
+def shadow_eye():
+    return render_template("shadow_eye.html", logs=db.recent_logs(50))
+
+
 @app.route("/vip/1")
 @vip_required
 def vip_metasploit():
@@ -213,6 +233,7 @@ def vip_sherlock():
                 [("status", "placeholder — apna integration add karo")])
 
 
+# ---- VIP 5: AI CHAT (OpenRouter — free account + free key chahiye, bina key kuch nahi hota) ----
 @app.route("/vip/6")
 @vip_required
 def vip_yt_downloader():
@@ -406,30 +427,77 @@ def vip_threat_detector():
         return render_template("threat.html", countries=COUNTRIES, sel=sel, error=error)
 
 
-OPENROUTER_KEY = os.environ.get("OPENROUTER_API_KEY", "")
-OPENROUTER_MODEL = os.environ.get("OPENROUTER_MODEL", "openrouter/free")
+# ---- AI CHAT — multiple free providers, sab OpenAI-compatible format mein ----
+# Har provider ko free account bana ke apni key honi chahiye. Agar kisi ka
+# ENV_VAR set nahi hai, wo provider list mein nahi dikhega.
+AI_PROVIDERS = {
+    "openrouter": {
+        "label": "OpenRouter",
+        "base_url": "https://openrouter.ai/api/v1",
+        "key_env": "OPENROUTER_API_KEY",
+        "model_env": "OPENROUTER_MODEL",
+        "default_model": "openrouter/free",   # khud best free model chunta hai
+    },
+    "gemini": {
+        "label": "Google Gemini",
+        "base_url": "https://generativelanguage.googleapis.com/v1beta/openai",
+        "key_env": "GEMINI_API_KEY",
+        "model_env": "GEMINI_MODEL",
+        "default_model": "gemini-3.5-flash",   # purana ho jaye to ai.google.dev par naya naam dekho
+    },
+    "groq": {
+        "label": "Groq",
+        "base_url": "https://api.groq.com/openai/v1",
+        "key_env": "GROQ_API_KEY",
+        "model_env": "GROQ_MODEL",
+        "default_model": "llama-3.3-70b-versatile",  # purana ho jaye to console.groq.com/docs/models dekho
+    },
+    "mistral": {
+        "label": "Mistral AI",
+        "base_url": "https://api.mistral.ai/v1",
+        "key_env": "MISTRAL_API_KEY",
+        "model_env": "MISTRAL_MODEL",
+        "default_model": "mistral-small-latest",
+    },
+}
+
+
+def available_providers():
+    """Jin providers ki key Render par set hai, sirf wahi list hote hain."""
+    out = []
+    for pid, p in AI_PROVIDERS.items():
+        if os.environ.get(p["key_env"]):
+            out.append({"id": pid, "label": p["label"]})
+    return out
 
 
 @app.route("/vip/5")
 @vip_required
 def vip_ai_chat():
-    return render_template("ai_chat.html", key_set=bool(OPENROUTER_KEY), model=OPENROUTER_MODEL)
+    return render_template("ai_chat.html", providers=available_providers())
 
 
 @app.route("/api/ai_chat", methods=["POST"])
 @vip_required
 def api_ai_chat():
-    if not OPENROUTER_KEY:
-        return {"error": "OPENROUTER_API_KEY set nahi hai (Render → Environment)"}, 400
-    history = request.json.get("messages", [])
+    body = request.json or {}
+    history = body.get("messages", [])
+    pid = body.get("provider", "")
+    p = AI_PROVIDERS.get(pid)
+    if not p:
+        return {"error": "provider chuno"}, 400
+    key = os.environ.get(p["key_env"])
+    if not key:
+        return {"error": f'{p["key_env"]} set nahi hai (Render → Environment)'}, 400
     if not history:
         return {"error": "message khali hai"}, 400
+    model = os.environ.get(p["model_env"], p["default_model"])
     try:
         import requests
         r = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers={"Authorization": f"Bearer {OPENROUTER_KEY}", "Content-Type": "application/json"},
-            json={"model": OPENROUTER_MODEL, "messages": history},
+            f'{p["base_url"]}/chat/completions',
+            headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+            json={"model": model, "messages": history},
             timeout=25,
         )
         data = r.json()
@@ -634,6 +702,21 @@ def admin_panel():
             except ValueError:
                 msg = ("err", "Sahi number daalo")
 
+        elif action == "grant_shadow":
+            ok, text = db.set_shadow_emperor(target, True)
+            if ok:
+                db.log_event(target, "made SHADOW EMPEROR by admin")
+                msg = ("ok", f"{target} ab SHADOW EMPEROR hai")
+            else:
+                msg = ("err", text)
+
+        elif action == "revoke_shadow":
+            db.set_shadow_emperor(target, False)
+            db.log_event(target, "SHADOW EMPEROR revoked by admin")
+            msg = ("ok", f"{target} se SHADOW EMPEROR hata diya")
+
     users = db.list_users()
     tools = {"osint": tool_on("osint"), "breach": tool_on("breach")}
-    return render_template("admin.html", users=users, tools=tools, msg=msg)
+    shadow_count = db.count_shadow_emperors()
+    return render_template("admin.html", users=users, tools=tools, msg=msg,
+                           shadow_count=shadow_count, shadow_max=db.SHADOW_EMPEROR_MAX)
