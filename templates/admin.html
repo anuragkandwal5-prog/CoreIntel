@@ -74,11 +74,12 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
   </section>
 
   <section class="card">
-    <h2>👤 Users ({{ users|length }})</h2>
+    <h2>👤 Users ({{ users|length }}) · 👁 Shadow Emperor {{ shadow_count }}/{{ shadow_max }}</h2>
     {% for u in users %}
     <div class="urow">
       <span class="uname">{{ u.username }}</span>
       {% if u.is_admin %}<span class="tag a">admin</span>{% endif %}
+      {% if u.is_shadow_emperor %}<span class="tag" style="border-color:#ff2bd6;color:#ff2bd6">SHADOW EMPEROR</span>{% endif %}
       {% if u.is_vip %}<span class="tag v">VIP</span>{% elif u.vip_requested %}<span class="tag p">pending</span>{% endif %}
       {% if u.banned %}<span class="tag" style="border-color:var(--red);color:var(--red)">banned</span>{% endif %}
       <span class="spacer"></span>
@@ -93,6 +94,11 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
           <form method="post" style="display:inline"><input type="hidden" name="action" value="unban"><input type="hidden" name="username" value="{{ u.username }}"><button type="submit">Unban</button></form>
         {% else %}
           <form method="post" style="display:inline"><input type="hidden" name="action" value="ban"><input type="hidden" name="username" value="{{ u.username }}"><button class="deny" type="submit">Ban</button></form>
+        {% endif %}
+        {% if u.is_shadow_emperor %}
+          <form method="post" style="display:inline"><input type="hidden" name="action" value="revoke_shadow"><input type="hidden" name="username" value="{{ u.username }}"><button class="deny" type="submit">Remove 👁</button></form>
+        {% else %}
+          <form method="post" style="display:inline"><input type="hidden" name="action" value="grant_shadow"><input type="hidden" name="username" value="{{ u.username }}"><button type="submit" style="border-color:#ff2bd6;color:#ff2bd6">Make 👁</button></form>
         {% endif %}
       {% endif %}
     </div>
