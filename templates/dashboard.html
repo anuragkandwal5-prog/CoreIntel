@@ -41,6 +41,11 @@ h2{margin:0 0 10px;font-size:15px;font-weight:400;letter-spacing:2px}
 .vz .grid{grid-template-columns:repeat(3,1fr)}
 .vz.lk .grid{filter:blur(3px);opacity:.4;pointer-events:none}
 .lock{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:14px;color:var(--gold);font-size:13px}
+.sh{border-color:#ff2bd6;box-shadow:0 0 18px rgba(255,43,214,.18)}
+.sh h2{color:#ff2bd6}.sh .tile{border-color:#7a1a66}.sh .tile b{color:#ff2bd6}
+.sh .grid{grid-template-columns:repeat(1,1fr)}
+.sh.lk .grid{filter:blur(3px);opacity:.4;pointer-events:none}
+#shlock{color:#ff2bd6}
 .log{height:132px;overflow:hidden;font-size:12px;color:var(--dim);white-space:pre-wrap}
 .log div:last-child{color:var(--g)}
 .rv{opacity:0;transform:translateY(12px)}
@@ -50,7 +55,8 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
 </style>
 </head>
 <!-- Flask/Jinja se name aur vip yahin aate hain. Bina server ke chalao to ?name=Rahul&vip=1 se test kar sakte ho -->
-<body data-srv="{{ 'ok' }}" data-name="{{ name }}" data-vip="{{ 1 if vip else 0 }}" data-admin="{{ 1 if admin else 0 }}">
+<body data-srv="{{ 'ok' }}" data-name="{{ name }}" data-vip="{{ 1 if vip else 0 }}" data-admin="{{ 1 if admin else 0 }}"
+      data-shadow="{{ 1 if shadow else 0 }}" data-shadow-list="{{ (shadow_list or [])|join(',') }}">
 <canvas id="rain"></canvas>
 <main class="wrap">
   <header class="top rv">
@@ -66,6 +72,7 @@ button:focus-visible,a:focus-visible{outline:2px solid var(--g);outline-offset:2
   </section>
   <section class="grid rv" id="tiles"></section>
   <section class="card vz rv" id="vz"><h2>★ VIP ZONE</h2><div class="grid" id="vtiles"></div><div class="lock" id="lock">🔒 VIP zone locked<br>VIP email ke saath login karo</div></section>
+  <section class="card vz sh rv" id="sh"><h2>👁 SHADOW REALM</h2><div class="mini" id="shWho" style="margin-bottom:8px"></div><div class="grid" id="shtiles"></div><div class="lock" id="shlock">🔒 Sirf SHADOW EMPEROR ke liye</div></section>
   <section class="card rv"><div class="mini">live log</div><div class="log" id="log"></div></section>
 </main>
 
@@ -85,9 +92,11 @@ function log(t){var L=$('log'),d=document.createElement('div');d.textContent=ts(
 
 (function(){
   var D=document.body.dataset, q=new URLSearchParams(location.search), RM=matchMedia('(prefers-reduced-motion:reduce)').matches;
-  var demo=D.srv!=='ok';
+  var demo=D.srv!=='ok';                              // server se data nahi aaya = preview mode
   var NAME=demo?(q.get('name')||'guest'):D.name, VIP=demo?q.get('vip')==='1':D.vip==='1';
   var ADMIN=demo?q.get('admin')==='1':D.admin==='1';
+  var SHADOW=demo?q.get('shadow')==='1':D.shadow==='1';
+  var SHADOW_LIST=(demo?(q.get('shadowList')||''):D.shadowList||'').split(',').filter(Boolean);
   if(ADMIN) TILES.push(['🛠','Admin Panel']);
 
   function tiles(box,list,fn,on){
@@ -99,20 +108,26 @@ function log(t){var L=$('log'),d=document.createElement('div');d.textContent=ts(
   }
   tiles($('tiles'),TILES,openTile,true);
   tiles($('vtiles'),VIP_TILES,openVip,VIP);
+  tiles($('shtiles'),[['👁','All-Seeing Eye']],function(){location.href='/shadow-eye'},SHADOW);
   function paintVip(){ $('vz').classList.toggle('lk',!VIP); $('lock').hidden=VIP; $('vipc').hidden=!VIP; Array.prototype.forEach.call($('vtiles').children,function(b){b.disabled=!VIP}) }
-  paintVip(); $('who').textContent='user: '+NAME;
+  function paintShadow(){ $('sh').classList.toggle('lk',!SHADOW); $('shlock').hidden=SHADOW; Array.prototype.forEach.call($('shtiles').children,function(b){b.disabled=!SHADOW});
+    $('shWho').textContent = SHADOW_LIST.length ? 'Abhi SHADOW EMPEROR: '+SHADOW_LIST.join(', ') : 'Abhi koi SHADOW EMPEROR nahi hai'; }
+  paintVip(); paintShadow(); $('who').textContent='user: '+NAME;
   if(demo){var b=document.createElement('button');b.className='demo';b.textContent='demo: VIP on/off';b.onclick=function(){VIP=!VIP;paintVip()};document.body.appendChild(b)}
 
+  /* matrix rain */
   var c=$('rain'),x=c.getContext('2d'),dr=[],CH='01<>/{}[];=$#&@+*アイウエオカキクケコ';
   function rs(){c.width=innerWidth;c.height=innerHeight;dr=[];for(var i=0;i<c.width/16;i++)dr.push(Math.random()*-40)}
   rs();addEventListener('resize',rs);
   if(!RM)setInterval(function(){x.fillStyle='rgba(2,11,5,.14)';x.fillRect(0,0,c.width,c.height);x.fillStyle='#00ff9c';x.font='14px monospace';
     for(var i=0;i<dr.length;i++){x.fillText(CH[Math.floor(Math.random()*CH.length)],i*16,dr[i]*16);if(dr[i]*16>c.height&&Math.random()>.97)dr[i]=0;dr[i]++}},55);
 
+  /* intro: sections reveal one by one, welcome line types itself */
   var msg='> welcome back, '+NAME+(VIP?'  [VIP]':'');
   Array.prototype.forEach.call(document.querySelectorAll('.rv'),function(e,i){setTimeout(function(){e.classList.add('on')},RM?0:i*220)});
   var n=0;(function ty(){$('typed').textContent=msg.slice(0,++n);if(n<msg.length&&!RM)setTimeout(ty,35);else if(RM)$('typed').textContent=msg})();
 
+  /* stats + live log (demo data: apna real data yahan lagao) */
   function stats(){for(var i=0;i<3;i++){var v=Math.floor(20+Math.random()*70);$('s'+i).textContent=v+'%';$('b'+i).style.width=v+'%'}}
   var MSG=['scan complete: 0 threats','firewall: all ports closed','tunnel: encrypted','heartbeat ok','sync: 0 changes','auth token refreshed'];
   setTimeout(stats,600);log('> session started for '+NAME);if(VIP)log('> VIP privileges loaded');
