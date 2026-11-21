@@ -29,6 +29,7 @@ def init_db():
             "banned BOOLEAN NOT NULL DEFAULT FALSE",
             "balance NUMERIC NOT NULL DEFAULT 100000",
             "followers INTEGER NOT NULL DEFAULT 0",
+            "is_shadow_emperor BOOLEAN NOT NULL DEFAULT FALSE",
         ]:
             cur.execute(f"ALTER TABLE users ADD COLUMN IF NOT EXISTS {coldef}")
         cur.execute("""
@@ -79,7 +80,7 @@ def get_user(username):
 def create_user(username, password_hash, email):
     with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT COUNT(*) AS n FROM users")
-        is_first = cur.fetchone()["n"] == 0        # sabse pehla user apne aap admin+VIP
+        is_first = cur.fetchone()["n"] == 0
         cur.execute(
             "INSERT INTO users (username, password_hash, email, is_admin, is_vip) "
             "VALUES (%s,%s,%s,%s,%s) RETURNING *",
@@ -126,6 +127,33 @@ def set_followers(username, count):
         conn.commit()
 
 
+SHADOW_EMPEROR_MAX = 5
+
+
+def count_shadow_emperors():
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("SELECT COUNT(*) FROM users WHERE is_shadow_emperor=TRUE")
+        return cur.fetchone()[0]
+
+
+def list_shadow_emperors():
+    with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute("SELECT username FROM users WHERE is_shadow_emperor=TRUE ORDER BY username")
+        return [r["username"] for r in cur.fetchall()]
+
+
+def set_shadow_emperor(username, value):
+    """Returns (ok, message). 5 se zyada ek saath nahi ban sakte."""
+    with get_conn() as conn, conn.cursor() as cur:
+        if value:
+            cur.execute("SELECT COUNT(*) FROM users WHERE is_shadow_emperor=TRUE")
+            if cur.fetchone()[0] >= SHADOW_EMPEROR_MAX:
+                return False, f"Already {SHADOW_EMPEROR_MAX} Shadow Emperor hain, pehle kisi ek ko hatao"
+        cur.execute("UPDATE users SET is_shadow_emperor=%s WHERE username=%s", (value, username))
+        conn.commit()
+        return True, "ok"
+
+
 def request_vip(username):
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("UPDATE users SET vip_requested=TRUE WHERE username=%s", (username,))
@@ -141,7 +169,8 @@ def set_vip(username, value):
 def list_users():
     with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("""
-            SELECT username, email, is_vip, is_admin, vip_requested, banned, balance, created_at
+            SELECT username, email, is_vip, is_admin, vip_requested, banned, balance,
+                   is_shadow_emperor, created_at
             FROM users ORDER BY created_at
         """)
         return cur.fetchall()
@@ -189,7 +218,6 @@ def get_trades(username, limit=20):
 
 
 def buy_asset(username, symbol, qty, price):
-    """Returns (ok, message). Atomic: balance check + debit + holding update + trade log, one transaction."""
     total = qty * price
     with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT balance FROM users WHERE username=%s", (username,))
@@ -215,7 +243,6 @@ def buy_asset(username, symbol, qty, price):
 
 
 def sell_asset(username, symbol, qty, price):
-    """Returns (ok, message). Atomic: holding check + credit + holding update + trade log, one transaction."""
     total = qty * price
     with get_conn() as conn, conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
         cur.execute("SELECT qty FROM holdings WHERE username=%s AND symbol=%s", (username, symbol))
