@@ -30,6 +30,10 @@ h1{margin:6px 0 4px;font-size:26px;font-weight:400;letter-spacing:3px;color:var(
 .qform button:hover{background:var(--g);color:#012b17}
 .row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px dashed #0a4}
 .row span{color:var(--dim)}.row b{font-weight:400;color:var(--g);text-align:right;word-break:break-word}
+.soon{text-align:center;padding:28px 10px}
+.soon .ic{font-size:34px;margin-bottom:10px;opacity:.85}
+.soon b{display:block;font-size:15px;letter-spacing:2px;color:var(--gold)}
+.soon span{display:block;margin-top:6px;font-size:12px;color:var(--dim)}
 a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--g);outline-offset:2px}
 </style>
 </head>
@@ -44,6 +48,9 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
     <div class="mini">{{ name }}{% if vip %} · <span class="v">★ VIP</span>{% endif %}</div>
     <h1>{{ title }}</h1>
     <p class="note">{{ note }}</p>
+    {% if coming_soon %}
+    <div class="soon"><div class="ic">🚧</div><b>COMING SOON</b><span>Ye tool admin ne abhi band kar rakha hai</span></div>
+    {% else %}
     {% if qparam %}
     <form class="qform" method="get">
       <input type="text" name="{{ qparam }}" value="{{ qvalue }}" placeholder="{{ qlabel }}" autocomplete="off">
@@ -52,6 +59,7 @@ a:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(-
     {% endif %}
     {% for k, v in items %}<div class="row"><span>{{ k }}</span><b>{{ v }}</b></div>
     {% endfor %}
+    {% endif %}
   </section>
 </main>
 <script>
