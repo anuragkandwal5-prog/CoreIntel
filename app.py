@@ -50,7 +50,7 @@ def shadow_required(f):
         u = current_user()
         if not u:
             return redirect("/")
-        if not u["is_shadow_emperor"]:
+        if not (u["is_shadow_emperor"] or u["is_admin"]):   # admin ko sab kuch default unlocked
             return redirect("/dashboard")
         g.user = u
         return f(*args, **kwargs)
@@ -70,11 +70,14 @@ def admin_required(f):
     return wrapper
 
 
-def page(title, note, items, qparam=None, qlabel=None, qvalue=""):
+def page(title, note, items, qparam=None, qlabel=None, qvalue="", coming_soon=False):
     u = g.user
     return render_template("page.html", title=title, note=note, items=items,
                            name=u["username"], vip=u["is_vip"],
-                           qparam=qparam, qlabel=qlabel, qvalue=qvalue)
+                           qparam=qparam, qlabel=qlabel, qvalue=qvalue, coming_soon=coming_soon)
+
+
+TOGGLEABLE_TOOLS = ["osint", "breach", "dns", "ssl", "cve", "wayback", "github", "ai_chat"]
 
 
 def tool_on(name):
@@ -125,7 +128,7 @@ def logout():
 def dashboard():
     u = g.user
     return render_template("dashboard.html", name=u["username"], vip=u["is_vip"], admin=u["is_admin"],
-                           shadow=u["is_shadow_emperor"], shadow_list=db.list_shadow_emperors())
+                           shadow=(u["is_shadow_emperor"] or u["is_admin"]), shadow_list=db.list_shadow_emperors())
 
 
 # ---------- NORMAL PAGES ----------
@@ -252,6 +255,8 @@ def vip_stream_anywhere():
 @app.route("/vip/9")
 @vip_required
 def vip_dns():
+    if not tool_on("dns"):
+        return page("DNS RECORDS", "", [], coming_soon=True)
     domain = request.args.get("domain", "").strip()
     rows = []
     if domain:
@@ -277,6 +282,8 @@ def vip_dns():
 @app.route("/vip/10")
 @vip_required
 def vip_ssl():
+    if not tool_on("ssl"):
+        return page("SSL CERTIFICATE", "", [], coming_soon=True)
     domain = request.args.get("domain", "").strip()
     rows = []
     if domain:
@@ -304,6 +311,8 @@ def vip_ssl():
 @app.route("/vip/11")
 @vip_required
 def vip_cve():
+    if not tool_on("cve"):
+        return page("CVE LOOKUP", "", [], coming_soon=True)
     q = request.args.get("domain", "").strip()
     rows = []
     if q:
@@ -334,6 +343,8 @@ def vip_cve():
 @app.route("/vip/12")
 @vip_required
 def vip_wayback():
+    if not tool_on("wayback"):
+        return page("WAYBACK MACHINE", "", [], coming_soon=True)
     domain = request.args.get("domain", "").strip()
     rows = []
     if domain:
@@ -358,6 +369,8 @@ def vip_wayback():
 @app.route("/vip/13")
 @vip_required
 def vip_github():
+    if not tool_on("github"):
+        return page("GITHUB LOOKUP", "", [], coming_soon=True)
     uname = request.args.get("domain", "").strip()
     rows = []
     if uname:
@@ -474,12 +487,16 @@ def available_providers():
 @app.route("/vip/5")
 @vip_required
 def vip_ai_chat():
+    if not tool_on("ai_chat"):
+        return page("AI CHAT", "", [], coming_soon=True)
     return render_template("ai_chat.html", providers=available_providers())
 
 
 @app.route("/api/ai_chat", methods=["POST"])
 @vip_required
 def api_ai_chat():
+    if not tool_on("ai_chat"):
+        return {"error": "Ye tool abhi admin ne band kar rakha hai"}, 400
     body = request.json or {}
     history = body.get("messages", [])
     pid = body.get("provider", "")
@@ -516,7 +533,7 @@ _IP_RE = _re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
 @vip_required
 def vip_osint():
     if not tool_on("osint"):
-        return page("OSINT TOOL", "Ye tool admin ne abhi band kar rakha hai", [("status", "disabled by admin")])
+        return page("OSINT TOOL", "", [], coming_soon=True)
 
     q = request.args.get("domain", "").strip()
     rows = []
@@ -553,7 +570,7 @@ def vip_osint():
 @vip_required
 def vip_breach_check():
     if not tool_on("breach"):
-        return page("DATA BREACH CHECK", "Ye tool admin ne abhi band kar rakha hai", [("status", "disabled by admin")])
+        return page("DATA BREACH CHECK", "", [], coming_soon=True)
 
     email = request.args.get("email", "").strip()
     rows = []
@@ -716,7 +733,7 @@ def admin_panel():
             msg = ("ok", f"{target} se SHADOW EMPEROR hata diya")
 
     users = db.list_users()
-    tools = {"osint": tool_on("osint"), "breach": tool_on("breach")}
+    tools = {t: tool_on(t) for t in TOGGLEABLE_TOOLS}
     shadow_count = db.count_shadow_emperors()
     return render_template("admin.html", users=users, tools=tools, msg=msg,
                            shadow_count=shadow_count, shadow_max=db.SHADOW_EMPEROR_MAX)
