@@ -58,19 +58,16 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
 
   <section class="card">
     <h2>🛠 VIP Tools On/Off</h2>
-    <p class="note">Band kiya hua tool sabhi VIP users ke liye temporarily disabled ho jaata hai.</p>
+    <p class="note">Band kiya hua tool "COMING SOON" dikhata hai saare VIP users ke liye.</p>
+    {% set labels = {'osint':'OSINT Tool','breach':'Data Breach Check','dns':'DNS Lookup','ssl':'SSL Checker','cve':'CVE Lookup','wayback':'Wayback Machine','github':'GitHub Lookup','ai_chat':'AI Chat'} %}
+    {% for key, on in tools.items() %}
     <div class="toolrow">
-      <span>OSINT Tool</span>
-      <form method="post"><input type="hidden" name="action" value="toggle_tool"><input type="hidden" name="tool" value="osint">
-        <button class="toggle{{ '' if tools.osint else ' off' }}" type="submit">{{ 'ON ●' if tools.osint else 'OFF ○' }}</button>
+      <span>{{ labels.get(key, key) }}</span>
+      <form method="post"><input type="hidden" name="action" value="toggle_tool"><input type="hidden" name="tool" value="{{ key }}">
+        <button class="toggle{{ '' if on else ' off' }}" type="submit">{{ 'ON ●' if on else 'OFF ○' }}</button>
       </form>
     </div>
-    <div class="toolrow">
-      <span>Data Breach Check</span>
-      <form method="post"><input type="hidden" name="action" value="toggle_tool"><input type="hidden" name="tool" value="breach">
-        <button class="toggle{{ '' if tools.breach else ' off' }}" type="submit">{{ 'ON ●' if tools.breach else 'OFF ○' }}</button>
-      </form>
-    </div>
+    {% endfor %}
   </section>
 
   <section class="card">
@@ -78,7 +75,7 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
     {% for u in users %}
     <div class="urow">
       <span class="uname">{{ u.username }}</span>
-      {% if u.is_admin %}<span class="tag a">admin</span>{% endif %}
+      {% if u.is_admin %}<span class="tag a">ADMIN</span>{% endif %}
       {% if u.is_shadow_emperor %}<span class="tag" style="border-color:#ff2bd6;color:#ff2bd6">SHADOW EMPEROR</span>{% endif %}
       {% if u.is_vip %}<span class="tag v">VIP</span>{% elif u.vip_requested %}<span class="tag p">pending</span>{% endif %}
       {% if u.banned %}<span class="tag" style="border-color:var(--red);color:var(--red)">banned</span>{% endif %}
@@ -100,6 +97,8 @@ button:focus-visible{outline:2px solid var(--g);outline-offset:2px}
         {% else %}
           <form method="post" style="display:inline"><input type="hidden" name="action" value="grant_shadow"><input type="hidden" name="username" value="{{ u.username }}"><button type="submit" style="border-color:#ff2bd6;color:#ff2bd6">Make 👁</button></form>
         {% endif %}
+      {% else %}
+        <span class="note" style="font-size:11px">★ admin ko 👁 access already hai, 5-slot mein count nahi hota</span>
       {% endif %}
     </div>
     <div class="urow" style="padding-top:0">
